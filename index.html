@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GIOVINCO</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #171512;
+    --card: #ECE6D9;
+    --card-hi: #F5F1E8;
+    --ink: #171512;
+    --paper: #F5F1E8;
+    --accent: #C8A86B;
+    --gold: #C8A86B;
+    --olive: #6E7454;
+    --line: #D8CFBB;
+    --line-dark: #33302A;
+    --muted: #8A8577;
+    --nav-bg: #141210;
+    --pill-bg: rgba(255,255,255,0.06);
+    --radius: 18px;
+  }
+  html[data-theme="light"]{
+    --bg: #F7F3EA;
+    --paper: #171512;
+    --card: #FFFFFF;
+    --card-hi: #FFFFFF;
+    --line-dark: #E2D9C4;
+    --nav-bg: #FFFFFF;
+    --pill-bg: rgba(0,0,0,0.05);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);}
+  body{
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    color:var(--paper);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+  }
+  .app{
+    width:100%;
+    max-width:430px;
+    min-height:100vh;
+    position:relative;
+    padding-bottom:100px;
+    overflow-x:hidden;
+  }
+  .stamp{
+    font-family:'Archivo Black',sans-serif;
+    font-weight:900;
+    text-transform:uppercase;
+    letter-spacing:0.02em;
+  }
+  .mono{ font-family:'JetBrains Mono',monospace; font-weight:700; }
+
+  /* ---- Header ---- */
+  header.top{
+    position:relative;
+    padding:22px 20px 26px;
+    background:
+      repeating-linear-gradient(135deg, rgba(255,78,31,0.07) 0 2px, transparent 2px 14px),
+      var(--bg);
+    border-bottom:1px solid var(--line-dark);
+  }
+  .brandrow{ display:flex; align-items:center; justify-content:space-between; }
+  .brandmark{ display:flex; align-items:center; gap:10px; }
+  .logomark{
+    width:34px; height:34px; flex-shrink:0;
+  }
+  .logo{
+    font-size:26px;
+    letter-spacing:0.03em;
+    color:var(--gold);
+  }
+  .lang-switch{ display:flex; gap:4px; background:var(--pill-bg); border-radius:999px; padding:3px; }
+  .lang-btn{
+    border:none; background:transparent; color:var(--muted);
+    font-size:11px; font-weight:700; padding:6px 10px; border-radius:999px; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .lang-btn.active{ background:var(--gold); color:#171512; }
+  .search{
+    margin-top:18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--card);
+    color:var(--ink);
+    border-radius:999px;
+    padding:12px 16px;
+    font-size:14px;
+  }
+  .search svg{ flex-shrink:0; }
+  .search input{
+    border:none;outline:none;background:transparent;
+    font-family:'Inter',sans-serif; font-size:14px; color:var(--ink); width:100%;
+  }
+  .search input::placeholder{ color:var(--muted); }
+
+  /* category chips */
+  .chips{
+    display:flex; gap:8px; overflow-x:auto;
+    padding:16px 20px 0; scrollbar-width:none;
+    cursor:grab; user-select:none;
+  }
+  .chips.dragging{ cursor:grabbing; }
+  .chips::-webkit-scrollbar{display:none;}
+  .chip{
+    flex-shrink:0;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid var(--line-dark);
+    background:transparent;
+    color:var(--paper);
+    font-size:13px; font-weight:600;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:var(--paper);
+  }
+
+  /* ---- Views ---- */
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ---- Product grid ---- */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px;
+    padding:18px 20px 10px;
+  }
+  .pcard{
+    position:relative;
+    background:var(--card);
+    border-radius:var(--radius);
+    overflow:hidden;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .pcard .imgwrap{
+    position:relative;
+    aspect-ratio:1/0.92;
+    background:var(--card-hi);
+    display:flex;align-items:center;justify-content:center;
+    padding:14px;
+    overflow:hidden;
+  }
+  .pcard .imgwrap.has-image{ padding:0; }
+  .pcard .imgwrap.has-image img{ border-radius:0 !important; }
+  .ticket{
+    position:absolute; top:9px; left:-6px;
+    background:var(--ink); color:var(--card-hi);
+    font-family:'JetBrains Mono',monospace;
+    font-size:10px; font-weight:700; letter-spacing:0.03em;
+    padding:3px 10px 3px 12px;
+    border-radius:0 4px 4px 0;
+  }
+  .ticket::after{
+    content:"";
+    position:absolute; left:0; top:100%;
+    border-width:4px 6px 0 0;
+    border-style:solid;
+    border-color:#0a0906 transparent transparent transparent;
+  }
+  .heart{
+    position:absolute; top:8px; right:8px;
+    width:30px;height:30px;border-radius:50%;
+    background:rgba(23,21,18,0.55);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+  }
+  .heart svg{ width:15px;height:15px; }
+  .heart.active svg path{ fill:var(--accent); stroke:var(--accent); }
+
+  .pinfo{ padding:10px 12px 14px; }
+  .pname{ font-size:13px; font-weight:700; line-height:1.25; }
+  .pcat{ font-size:11px; color:var(--muted); margin-top:2px; font-weight:700; }
+  .prow{ display:flex; align-items:center; justify-content:space-between; margin-top:9px; }
+  .pprice{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px; }
+  .addbtn{
+    width:28px;height:28px;border-radius:50%;
+    background:var(--ink); color:var(--paper);
+    border:none; display:flex;align-items:center;justify-content:center;
+    cursor:pointer; font-size:16px; line-height:1;
+  }
+  .addbtn.in{ background:var(--olive); }
+
+  /* shoe icon svg */
+  .shoe-svg{ width:100%; height:auto; }
+
+  /* ---- Empty state (favorites / cart) ---- */
+  .empty{
+    display:flex; flex-direction:column; align-items:center;
+    text-align:center; padding:70px 40px 30px;
+  }
+  .empty .duck{ font-size:56px; margin-bottom:14px; }
+  .empty h3{ font-family:'Archivo Black',sans-serif; font-size:17px; margin:0 0 8px; letter-spacing:0.01em;}
+  .empty p{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 22px; font-weight:700; }
+  .cta{
+    background:var(--accent); color:#171512;
+    border:none; border-radius:999px;
+    padding:13px 28px; font-weight:700; font-size:14px;
+    cursor:pointer;
+  }
+
+  .view-title{
+    padding:20px 20px 4px;
+    font-family:'Archivo Black',sans-serif;
+    font-size:20px; letter-spacing:0.01em;
+  }
+
+  /* home */
+  .home-hero{
+    text-align:center;
+    padding:36px 30px 26px;
+    background: repeating-linear-gradient(135deg, rgba(200,168,107,0.06) 0 2px, transparent 2px 14px), var(--bg);
+    border-bottom:1px solid var(--line-dark);
+  }
+  .home-hero-logo{ width:56px; height:56px; margin-bottom:14px; }
+  .home-hero-title{ font-size:19px; color:var(--gold); letter-spacing:0.01em; line-height:1.3; }
+  .home-hero-sub{ font-size:13px; color:var(--muted); margin:10px 0 22px; line-height:1.5; font-weight:700; }
+  .home-tiles{
+    display:grid; grid-template-columns:1fr 1fr; gap:12px;
+    padding:20px 20px 4px;
+  }
+  .home-tile{
+    background:var(--card); color:var(--ink);
+    border-radius:16px; padding:16px;
+    cursor:pointer;
+  }
+  .home-tile .ico{
+    width:36px;height:36px;border-radius:10px;background:var(--card-hi);
+    display:flex;align-items:center;justify-content:center; margin-bottom:10px;
+  }
+  .home-tile .t{ font-size:13.5px; font-weight:700; }
+  .home-tile .s{ font-size:11px; color:var(--muted); margin-top:2px; }
+
+  /* cart list */
+  .cart-item{
+    display:flex; gap:12px; align-items:center;
+    padding:12px 20px; border-bottom:1px solid var(--line-dark);
+  }
+  .cart-item .thumb{
+    width:56px;height:56px;border-radius:12px;background:var(--card);
+    display:flex;align-items:center;justify-content:center; flex-shrink:0;
+  }
+  .cart-item .thumb svg{ width:34px; }
+  .cart-item .meta{ flex:1; }
+  .cart-item .meta .n{ font-size:13px; font-weight:700; }
+  .cart-item .meta .s{ font-size:11px; color:var(--muted); margin-top:2px; font-weight:700; }
+  .cart-item .meta .cart-comment{ font-size:11px; color:var(--gold); margin-top:3px; font-style:italic; }
+  .qty{ display:flex; align-items:center; gap:8px; }
+  .qty button{
+    width:24px;height:24px;border-radius:50%;border:1px solid var(--line-dark);
+    background:transparent;color:var(--paper);cursor:pointer;font-size:14px;
+  }
+  .qty span{ font-family:'JetBrains Mono',monospace; font-size:13px; min-width:14px; text-align:center; }
+
+  .cart-summary{
+    margin:18px 20px; padding:16px;
+    background:var(--card); color:var(--ink); border-radius:var(--radius);
+  }
+  .sumrow{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; color:var(--muted); }
+  .sumrow.total{ color:var(--ink); font-weight:700; font-size:15px; margin-top:10px; margin-bottom:0; }
+  .checkout{
+    width:100%; margin-top:14px; border:none; border-radius:999px;
+    background:var(--ink); color:var(--paper); padding:14px; font-weight:700; font-size:14px;
+    cursor:pointer;
+  }
+
+  /* profile */
+  .profile-card{
+    margin:22px 20px 0;
+    background:linear-gradient(160deg, #21201B 0%, #171512 100%);
+    border:1px solid var(--line-dark);
+    border-radius:20px;
+    padding:22px 20px;
+  }
+  .profile-head{
+    display:flex; align-items:center; gap:14px;
+  }
+  .profile-avatar{
+    width:54px;height:54px;border-radius:50%;
+    background:var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Archivo Black',sans-serif; font-size:19px; color:#171512;
+  }
+  .profile-name{ font-size:16px; font-weight:700; color:var(--card-hi); }
+  .profile-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+  .profile-stats{
+    display:flex; margin-top:18px;
+    border-top:1px solid var(--line-dark); padding-top:16px;
+  }
+  .stat{ flex:1; text-align:center; }
+  .stat .num{ font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:var(--gold); }
+  .stat .lbl{ font-size:10.5px; color:var(--muted); margin-top:3px; text-transform:uppercase; letter-spacing:0.05em; }
+  .stat-div{ width:1px; background:var(--line-dark); margin:2px 4px; }
+
+  .plist-title{
+    padding:22px 20px 8px; font-size:11px; color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.1em; font-weight:700;
+  }
+  .plist{ padding:0 20px; }
+  .prow2{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 4px; border-bottom:1px solid var(--line-dark); cursor:pointer;
+  }
+  .prow2:last-child{ border-bottom:none; }
+  .prow2 .left{ display:flex; align-items:center; gap:12px; font-size:13.5px; font-weight:600; color:var(--paper); }
+  .prow2 .sub{ font-size:11.5px; color:var(--muted); font-weight:700; margin-top:2px; }
+  .prow2 .ico{
+    width:34px;height:34px;border-radius:10px;background:var(--card);
+    display:flex;align-items:center;justify-content:center; flex-shrink:0;
+  }
+  .prow2 .arrow{ color:var(--muted); }
+  .toggle-switch{
+    width:46px; height:26px; border-radius:999px; background:var(--line-dark);
+    position:relative; cursor:pointer; transition:background .2s; flex-shrink:0;
+  }
+  .toggle-switch.on{ background:var(--gold); }
+  .toggle-knob{
+    position:absolute; top:3px; left:3px; width:20px; height:20px;
+    border-radius:50%; background:#fff; transition:left .2s;
+  }
+  .toggle-switch.on .toggle-knob{ left:23px; }
+
+  /* ---- Product detail overlay ---- */
+  .product-overlay{
+    display:none;
+    position:fixed; inset:0; z-index:40;
+    max-width:430px; margin:0 auto;
+    background:var(--bg);
+    overflow-y:auto;
+  }
+  .product-overlay.active{ display:block; }
+  .product-topbar{
+    position:sticky; top:0; z-index:2;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:16px 18px;
+    background:linear-gradient(to bottom, rgba(23,21,18,0.9), transparent);
+  }
+  .back-btn{
+    width:38px;height:38px;border-radius:50%;
+    background:rgba(23,21,18,0.6); border:1px solid var(--line-dark);
+    display:flex;align-items:center;justify-content:center; cursor:pointer;
+  }
+  .product-topbar .heart{
+    position:static; width:38px;height:38px;
+    background:rgba(23,21,18,0.6); border:1px solid var(--line-dark);
+  }
+  .product-hero{
+    background:var(--card-hi);
+    padding:10px 30px 30px;
+    margin-top:-58px;
+    position:relative;
+  }
+  .product-hero.has-image{
+    padding:0;
+    aspect-ratio: 1 / 1;
+    overflow:hidden;
+  }
+  .product-hero.has-image img{
+    width:100%; height:100%; object-fit:cover; display:block; border-radius:0 !important;
+  }
+  .product-hero .ticket{ position:static; display:inline-block; margin-bottom:10px; }
+  .product-hero.has-image .ticket{ position:absolute; top:14px; left:-6px; margin-bottom:0; z-index:3; }
+  .product-body-inner{ padding:22px 20px 100px; }
+  .product-cat{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; }
+  .product-name{ font-family:'Archivo Black',sans-serif; font-size:22px; margin-top:6px; line-height:1.25; }
+  .product-price{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:19px; color:var(--gold); margin-top:10px; }
+  .product-section-title{ font-size:12px; color:var(--muted); text-transform:uppercase; letter-spacing:0.08em; margin:26px 0 10px; font-weight:700; }
+  .size-row{ display:flex; flex-wrap:wrap; gap:8px; }
+  .size-chip{
+    width:48px; height:44px; border-radius:12px;
+    border:1px solid var(--line-dark); background:transparent; color:var(--paper);
+    font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .size-chip.active{ background:var(--gold); border-color:var(--gold); color:#171512; }
+  .product-desc{ font-size:13.5px; color:var(--muted); line-height:1.6; margin-top:8px; font-weight:700; }
+  .comment-box{
+    width:100%; min-height:80px; resize:vertical;
+    background:var(--card); color:var(--ink);
+    border:none; border-radius:14px; padding:12px 14px;
+    font-family:'Inter',sans-serif; font-size:13px; line-height:1.5;
+  }
+  .comment-box::placeholder{ color:var(--muted); }
+  .addr-input{
+    width:100%; background:var(--card); color:var(--ink);
+    border:none; border-radius:14px; padding:13px 14px;
+    font-family:'Inter',sans-serif; font-size:13.5px;
+    margin-bottom:10px;
+  }
+  .addr-input::placeholder{ color:var(--muted); }
+  .addr-label{ font-size:11.5px; color:var(--muted); margin:0 0 6px 2px; }
+  .save-btn{
+    width:100%; border:none; border-radius:999px;
+    background:var(--gold); color:#171512; padding:14px; font-weight:700; font-size:14px;
+    cursor:pointer; margin-top:6px;
+  }
+  .order-card{
+    background:var(--card); color:var(--ink); border-radius:16px;
+    padding:14px 16px; margin-bottom:12px;
+  }
+  .order-card .date{ font-size:11px; color:var(--muted); }
+  .order-card .items{ font-size:13px; margin-top:6px; line-height:1.6; }
+  .order-card .total{ font-family:'JetBrains Mono',monospace; font-weight:700; margin-top:8px; font-size:13.5px; }
+  .product-actionbar{
+    position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+    width:100%; max-width:430px;
+    background:var(--nav-bg); border-top:1px solid var(--line-dark);
+    padding:14px 20px calc(14px + env(safe-area-inset-bottom));
+    display:flex; gap:12px; align-items:center;
+  }
+  .product-actionbar .price{ font-family:'JetBrains Mono',monospace; font-weight:700; font-size:15px; flex-shrink:0; }
+  .addcart-btn{
+    flex:1; border:none; border-radius:999px;
+    background:var(--gold); color:#171512; padding:14px; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .addcart-btn.in{ background:var(--olive); color:var(--paper); }
+
+  /* ---- Bottom nav ---- */
+  nav.bottom{
+    position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+    width:calc(100% - 40px); max-width:390px;
+    background:var(--nav-bg);
+    border:1px solid var(--line-dark);
+    border-radius:999px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.45);
+    display:flex; justify-content:space-between; align-items:center;
+    padding:8px 10px;
+    z-index:20;
+  }
+  .navbtn{
+    display:flex; align-items:center; justify-content:center;
+    background:none; border:none; color:var(--muted);
+    cursor:pointer; position:relative;
+    width:44px; height:44px; border-radius:50%; flex-shrink:0;
+  }
+  .navbtn span{
+    display:none;
+  }
+  .navbtn.active{ background:var(--accent); color:#171512; }
+  .navbtn.active svg path, .navbtn.active svg circle, .navbtn.active svg rect{ stroke:#171512; }
+  .badge{
+    position:absolute; top:-2px; right:0px;
+    background:var(--accent); color:#171512;
+    font-size:9px; font-weight:800; border-radius:50%;
+    width:15px;height:15px; display:flex;align-items:center;justify-content:center;
+    border:2px solid #141210;
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <header class="top">
+    <div class="brandrow">
+      <div class="brandmark">
+        <svg class="logomark" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="47" stroke="#C8A86B" stroke-width="3"/>
+          <path d="M40 24H55C63.8 24 71 31.2 71 40C71 48.8 63.8 56 55 56H46V76H40V24Z" stroke="#C8A86B" stroke-width="4.5" stroke-linejoin="round"/>
+          <path d="M46 56V40" stroke="#C8A86B" stroke-width="4.5"/>
+        </svg>
+        <div class="logo stamp">GIOVINCO</div>
+      </div>
+      <div class="lang-switch" id="lang-switch">
+        <button class="lang-btn" data-lang="uz" onclick="setLang('uz')">UZ</button>
+        <button class="lang-btn" data-lang="ru" onclick="setLang('ru')">RU</button>
+        <button class="lang-btn" data-lang="en" onclick="setLang('en')">EN</button>
+      </div>
+    </div>
+    <div class="search-block" id="search-block" style="display:none">
+      <div class="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#171512" stroke-width="2"/><path d="M21 21L16.65 16.65" stroke="#171512" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="text" id="search-input" data-i18n-placeholder="search_placeholder" oninput="filterProducts(this.value)">
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <section class="view active" id="view-home">
+    <div class="home-hero">
+      <svg class="home-hero-logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="47" stroke="#C8A86B" stroke-width="3"/>
+        <path d="M40 24H55C63.8 24 71 31.2 71 40C71 48.8 63.8 56 55 56H46V76H40V24Z" stroke="#C8A86B" stroke-width="4.5" stroke-linejoin="round"/>
+        <path d="M46 56V40" stroke="#C8A86B" stroke-width="4.5"/>
+      </svg>
+      <div class="home-hero-title stamp" data-i18n="home_welcome"></div>
+      <div class="home-hero-sub" data-i18n="home_sub"></div>
+      <button class="cta" data-i18n="home_cta" onclick="go('catalog')"></button>
+    </div>
+
+    <div class="home-tiles">
+      <div class="home-tile" onclick="go('catalog')">
+        <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#C8A86B" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#C8A86B" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#C8A86B" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="#C8A86B" stroke-width="2"/></svg></div>
+        <div class="t" data-i18n="nav_catalog"></div>
+      </div>
+      <div class="home-tile" onclick="go('fav')">
+        <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7.5-4.6-10-9.2C.5 7 2.3 3.5 6 3c2.2-.3 4 .9 6 3.3C14 3.9 15.8 2.7 18 3c3.7.5 5.5 4 4 7.8C19.5 15.4 12 20 12 20z" stroke="#C8A86B" stroke-width="2" stroke-linejoin="round"/></svg></div>
+        <div class="t" data-i18n="tile_fav"></div>
+      </div>
+      <div class="home-tile" onclick="window.open('tel:+998939077737')">
+        <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M5 4H9L11 9L8.5 10.5C9.5 12.7 11.3 14.5 13.5 15.5L15 13L20 15V19C20 20.1 19.1 21 18 21C10.3 20.5 4.5 14.7 4 7C4 5.9 4.9 5 5 4Z" stroke="#C8A86B" stroke-width="2" stroke-linejoin="round"/></svg></div>
+        <div class="t" data-i18n="tile_call"></div>
+      </div>
+      <div class="home-tile" onclick="go('profile')">
+        <div class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#C8A86B" stroke-width="2"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="#C8A86B" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="t" data-i18n="nav_profile"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATALOG -->
+  <section class="view" id="view-catalog">
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <!-- FAVORITES -->
+  <section class="view" id="view-fav">
+    <div class="view-title" data-i18n="nav_fav"></div>
+    <div id="fav-content"></div>
+  </section>
+
+  <!-- CART -->
+  <section class="view" id="view-cart">
+    <div class="view-title" data-i18n="cart_title"></div>
+    <div id="cart-content"></div>
+  </section>
+
+  <!-- PROFILE -->
+  <section class="view" id="view-profile">
+    <div class="profile-card">
+      <div class="profile-head">
+        <div class="profile-avatar" id="profile-initial">P</div>
+        <div>
+          <div class="profile-name" id="profile-name">Mehmon</div>
+          <div class="profile-sub" id="profile-sub"></div>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="stat"><div class="num" id="stat-orders">0</div><div class="lbl" data-i18n="stat_orders"></div></div>
+        <div class="stat-div"></div>
+        <div class="stat"><div class="num" id="stat-fav">0</div><div class="lbl" data-i18n="stat_fav"></div></div>
+        <div class="stat-div"></div>
+        <div class="stat"><div class="num" id="stat-cart">0</div><div class="lbl" data-i18n="stat_cart"></div></div>
+      </div>
+    </div>
+
+    <div class="plist-title" data-i18n="section_orders_delivery"></div>
+    <div class="plist">
+      <div class="prow2" onclick="openOrderHistory()">
+        <div class="left"><div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 8L12 3L21 8V16L12 21L3 16V8Z" stroke="#C8A86B" stroke-width="2" stroke-linejoin="round"/><path d="M3 8L12 13L21 8" stroke="#C8A86B" stroke-width="2" stroke-linejoin="round"/><path d="M12 13V21" stroke="#C8A86B" stroke-width="2"/></svg></div><div><span data-i18n="row_order_history"></span><div class="sub" id="orders-sub"></div></div></div>
+        <span class="arrow">›</span>
+      </div>
+      <div class="prow2" onclick="openAddressForm()">
+        <div class="left"><div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21C12 21 19 14.6 19 9.5C19 5.4 15.9 2 12 2C8.1 2 5 5.4 5 9.5C5 14.6 12 21 12 21Z" stroke="#C8A86B" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.5" stroke="#C8A86B" stroke-width="2"/></svg></div><div><span data-i18n="row_address"></span><div class="sub" id="address-sub"></div></div></div>
+        <span class="arrow">›</span>
+      </div>
+    </div>
+
+    <div class="plist-title" data-i18n="section_contact"></div>
+    <div class="plist">
+      <div class="prow2" onclick="window.open('tel:+998939077737')">
+        <div class="left"><div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 4H9L11 9L8.5 10.5C9.5 12.7 11.3 14.5 13.5 15.5L15 13L20 15V19C20 20.1 19.1 21 18 21C10.3 20.5 4.5 14.7 4 7C4 5.9 4.9 5 5 4Z" stroke="#C8A86B" stroke-width="2" stroke-linejoin="round"/></svg></div><div data-i18n="row_call"></div></div>
+        <span class="arrow">›</span>
+      </div>
+      <div class="prow2" onclick="window.open('https://instagram.com/passo_uz')">
+        <div class="left"><div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="#C8A86B" stroke-width="2"/><circle cx="12" cy="12" r="4.2" stroke="#C8A86B" stroke-width="2"/><circle cx="17.4" cy="6.6" r="1.2" fill="#C8A86B"/></svg></div><div>Instagram</div></div>
+        <span class="arrow">›</span>
+      </div>
+      <div class="prow2" onclick="window.open('https://t.me/passo_uz')">
+        <div class="left"><div class="ico"><svg width="18" height="18" viewBox="0 0 240 240" fill="none"><path d="M180 72L157 178c-1.7 7.7-6.4 9.6-13 6L108 157l-17 16c-1.9 1.9-3.5 3.5-7.1 3.5l2.5-36 65-59c2.8-2.5-0.6-3.9-4.4-1.4l-80 50-35-11c-7.6-2.4-7.7-7.6 1.6-11.2l137-53c6.3-2.4 11.9 1.5 9.4 11.1z" fill="#C8A86B"/></svg></div><div data-i18n="row_support"></div></div>
+        <span class="arrow">›</span>
+      </div>
+    </div>
+
+    <div class="plist-title" data-i18n="section_settings"></div>
+    <div class="plist">
+      <div class="prow2" style="cursor:default;">
+        <div class="left"><div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" stroke="#C8A86B" stroke-width="2" stroke-linejoin="round"/></svg></div><div data-i18n="row_dark_mode"></div></div>
+        <div class="toggle-switch" id="theme-toggle" onclick="toggleTheme()"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCT DETAIL (overlay) -->
+  <div class="product-overlay" id="product-overlay">
+    <div class="product-topbar">
+      <button class="back-btn" onclick="closeProduct()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F5F1E8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="heart" id="product-heart" onclick="toggleFavFromProduct()">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20s-7.5-4.6-10-9.2C.5 7 2.3 3.5 6 3c2.2-.3 4 .9 6 3.3C14 3.9 15.8 2.7 18 3c3.7.5 5.5 4 4 7.8C19.5 15.4 12 20 12 20z" stroke="#F5F1E8" stroke-width="2" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+    <div id="product-body"></div>
+  </div>
+
+  <!-- INFO OVERLAY (order history / address form) -->
+  <div class="product-overlay" id="info-overlay">
+    <div class="product-topbar">
+      <button class="back-btn" onclick="closeInfoOverlay()">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M15 5L8 12L15 19" stroke="#F5F1E8" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="product-body-inner">
+      <div class="product-name" id="info-title" style="margin-top:0;"></div>
+      <div id="info-body"></div>
+    </div>
+  </div>
+
+  <nav class="bottom">
+    <button class="navbtn active" id="nav-home" onclick="go('home')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11V20H14V14H10V20H4V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span data-i18n="nav_home"></span>
+    </button>
+    <button class="navbtn" id="nav-catalog" onclick="go('catalog')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>
+      <span data-i18n="nav_catalog"></span>
+    </button>
+    <button class="navbtn" id="nav-fav" onclick="go('fav')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7.5-4.6-10-9.2C.5 7 2.3 3.5 6 3c2.2-.3 4 .9 6 3.3C14 3.9 15.8 2.7 18 3c3.7.5 5.5 4 4 7.8C19.5 15.4 12 20 12 20z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      <span data-i18n="nav_fav"></span>
+    </button>
+    <button class="navbtn" id="nav-cart" onclick="go('cart')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 12H7L6 8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="currentColor" stroke-width="2"/></svg>
+      <span data-i18n="nav_cart"></span>
+      <span class="badge" id="cart-badge" style="display:none">0</span>
+    </button>
+    <button class="navbtn" id="nav-profile" onclick="go('profile')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-3.5 3.5-6 8-6s8 2.5 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span data-i18n="nav_profile"></span>
+    </button>
+  </nav>
+</div>
+
+<script>
+/* ---------- i18n ---------- */
+const I18N = {
+  uz: {
+    search_placeholder: "GIOVINCO'dan qidirish",
+    nav_home: "Bosh sahifa", nav_catalog: "Katalog", nav_fav: "Sevimli", nav_cart: "Savat", nav_profile: "Profil",
+    home_welcome: "GIOVINCO'GA XUSH KELIBSIZ",
+    home_sub: "Erkaklar uchun tanlangan oyoq kiyimlar to'plami",
+    home_cta: "Katalogni ko'rish",
+    tile_fav: "Sevimlilar", tile_call: "Qo'ng'iroq",
+    cart_title: "Savatcha",
+    fav_empty_title: "Sevimlilar bo'sh",
+    fav_empty_desc: "Mahsulot ustidagi yurak belgisini bosing —<br>tez orada yana ko'rasiz.",
+    fav_empty_btn: "Katalogga o'tish",
+    cart_empty_title: "Savatcha bo'sh",
+    cart_empty_desc: "Hali hech narsa yo'q. Katalogdan<br>sevimli juftlikni tanlang.",
+    cart_empty_btn: "Katalogdan tanlash",
+    cart_products: "Mahsulotlar", cart_delivery: "Yetkazib berish", cart_delivery_val: "Kelishiladi",
+    cart_total: "Jami", cart_checkout: "Buyurtma berish", cart_sending: "Yuborilmoqda...",
+    cart_size_label: "O'lcham",
+    order_error: "Xatolik yuz berdi, qaytadan urinib ko'ring.",
+    order_network_error: "Internetga ulanishda muammo bo'ldi. Qaytadan urinib ko'ring.",
+    order_success_title: "Buyurtma qabul qilindi!",
+    order_success_desc: "Tez orada operatorimiz siz bilan<br>bog'lanadi. Rahmat!",
+    order_success_btn: "Katalogga qaytish",
+    no_results: "Hech narsa topilmadi",
+    profile_guest: "Mehmon", profile_customer: "GIOVINCO mijozi",
+    stat_orders: "Buyurtma", stat_fav: "Sevimli", stat_cart: "Savatda",
+    section_orders_delivery: "Buyurtma va yetkazib berish",
+    row_order_history: "Buyurtmalar tarixi", row_no_orders: "Hozircha buyurtma yo'q",
+    row_address: "Yetkazib berish manzili", row_no_address: "Manzil qo'shilmagan",
+    section_contact: "Aloqa", row_call: "Telefon orqali buyurtma", row_support: "Telegram", section_settings: "Sozlamalar", row_dark_mode: "Tungi rejim",
+    product_select_size: "O'lchamni tanlang", product_desc_title: "Tavsif",
+    product_desc_text: (name) => `${name} — GIOVINCO kolleksiyasidan, erkaklar uchun mo'ljallangan qulay va bardoshli poyabzal. Kundalik kiyish uchun ideal.`,
+    product_comment_title: "Buyurtmaga izoh",
+    product_comment_placeholder: "Masalan: rangi yoki boshqa istaklaringiz...",
+    add_to_cart: "Savatga qo'shish", update_cart: "✓ Yangilash",
+    orders_count: (n) => `${n} ta buyurtma`,
+    order_history_title: "Buyurtmalar tarixi",
+    order_history_empty_title: "Hali buyurtma yo'q",
+    order_history_empty_desc: "Birinchi buyurtmangizni bering,<br>bu yerda ko'rinadi.",
+    order_card_size: "O'lcham", order_card_qty: "dona", order_card_total: "Jami",
+    address_title: "Yetkazib berish manzili",
+    addr_name_label: "Ism", addr_name_placeholder: "Ismingiz",
+    addr_phone_label: "Telefon raqam",
+    addr_address_label: "Manzil", addr_address_placeholder: "Shahar, tuman, ko'cha, uy raqami...",
+    addr_location_label: "Lokatsiya havolasi (Yandex yoki Google Maps)",
+    addr_location_placeholder: "https://maps.google.com/... yoki https://yandex.uz/maps/...",
+    save: "Saqlash",
+    cats: { all:"Barchasi", sneakers:"Krossovkalar", boots:"Botinkalar", sport:"Sport", slippers:"Tapochka", classic:"Klassik" }
+  },
+  ru: {
+    search_placeholder: "Поиск в GIOVINCO",
+    nav_home: "Главная", nav_catalog: "Каталог", nav_fav: "Избранное", nav_cart: "Корзина", nav_profile: "Профиль",
+    home_welcome: "ДОБРО ПОЖАЛОВАТЬ В GIOVINCO",
+    home_sub: "Подборка обуви для мужчин",
+    home_cta: "Смотреть каталог",
+    tile_fav: "Избранное", tile_call: "Позвонить",
+    cart_title: "Корзина",
+    fav_empty_title: "Список избранного пуст",
+    fav_empty_desc: "Нажмите на сердечко у товара —<br>он появится здесь.",
+    fav_empty_btn: "Перейти в каталог",
+    cart_empty_title: "Корзина пуста",
+    cart_empty_desc: "Пока ничего нет. Выберите<br>понравившуюся пару в каталоге.",
+    cart_empty_btn: "Выбрать в каталоге",
+    cart_products: "Товары", cart_delivery: "Доставка", cart_delivery_val: "По договорённости",
+    cart_total: "Итого", cart_checkout: "Оформить заказ", cart_sending: "Отправка...",
+    cart_size_label: "Размер",
+    order_error: "Произошла ошибка, попробуйте снова.",
+    order_network_error: "Проблема с подключением к интернету. Попробуйте снова.",
+    order_success_title: "Заказ принят!",
+    order_success_desc: "Наш оператор скоро свяжется<br>с вами. Спасибо!",
+    order_success_btn: "Вернуться в каталог",
+    no_results: "Ничего не найдено",
+    profile_guest: "Гость", profile_customer: "Клиент GIOVINCO",
+    stat_orders: "Заказы", stat_fav: "Избранное", stat_cart: "В корзине",
+    section_orders_delivery: "Заказ и доставка",
+    row_order_history: "История заказов", row_no_orders: "Пока нет заказов",
+    row_address: "Адрес доставки", row_no_address: "Адрес не указан",
+    section_contact: "Контакты", row_call: "Заказ по телефону", row_support: "Telegram", section_settings: "Настройки", row_dark_mode: "Тёмная тема",
+    product_select_size: "Выберите размер", product_desc_title: "Описание",
+    product_desc_text: (name) => `${name} — из коллекции GIOVINCO, удобная и прочная обувь для мужчин. Идеально для повседневной носки.`,
+    product_comment_title: "Комментарий к заказу",
+    product_comment_placeholder: "Например: цвет или другие пожелания...",
+    add_to_cart: "Добавить в корзину", update_cart: "✓ Обновить",
+    orders_count: (n) => `Заказов: ${n}`,
+    order_history_title: "История заказов",
+    order_history_empty_title: "Заказов пока нет",
+    order_history_empty_desc: "Оформите первый заказ —<br>он появится здесь.",
+    order_card_size: "Размер", order_card_qty: "шт.", order_card_total: "Итого",
+    address_title: "Адрес доставки",
+    addr_name_label: "Имя", addr_name_placeholder: "Ваше имя",
+    addr_phone_label: "Номер телефона",
+    addr_address_label: "Адрес", addr_address_placeholder: "Город, район, улица, дом...",
+    addr_location_label: "Ссылка на локацию (Yandex или Google Maps)",
+    addr_location_placeholder: "https://maps.google.com/... или https://yandex.uz/maps/...",
+    save: "Сохранить",
+    cats: { all:"Все", sneakers:"Кроссовки", boots:"Ботинки", sport:"Спорт", slippers:"Тапочки", classic:"Классика" }
+  },
+  en: {
+    search_placeholder: "Search GIOVINCO",
+    nav_home: "Home", nav_catalog: "Catalog", nav_fav: "Favorites", nav_cart: "Cart", nav_profile: "Profile",
+    home_welcome: "WELCOME TO GIOVINCO",
+    home_sub: "A curated footwear collection for men",
+    home_cta: "View catalog",
+    tile_fav: "Favorites", tile_call: "Call us",
+    cart_title: "Cart",
+    fav_empty_title: "No favorites yet",
+    fav_empty_desc: "Tap the heart on a product —<br>it'll show up here.",
+    fav_empty_btn: "Go to catalog",
+    cart_empty_title: "Your cart is empty",
+    cart_empty_desc: "Nothing here yet. Pick a pair<br>you like from the catalog.",
+    cart_empty_btn: "Browse catalog",
+    cart_products: "Items", cart_delivery: "Delivery", cart_delivery_val: "To be arranged",
+    cart_total: "Total", cart_checkout: "Place order", cart_sending: "Sending...",
+    cart_size_label: "Size",
+    order_error: "Something went wrong, please try again.",
+    order_network_error: "Network connection issue. Please try again.",
+    order_success_title: "Order received!",
+    order_success_desc: "Our operator will contact you<br>shortly. Thank you!",
+    order_success_btn: "Back to catalog",
+    no_results: "No results found",
+    profile_guest: "Guest", profile_customer: "GIOVINCO customer",
+    stat_orders: "Orders", stat_fav: "Favorites", stat_cart: "In cart",
+    section_orders_delivery: "Order & delivery",
+    row_order_history: "Order history", row_no_orders: "No orders yet",
+    row_address: "Delivery address", row_no_address: "No address added",
+    section_contact: "Contact", row_call: "Order by phone", row_support: "Telegram", section_settings: "Settings", row_dark_mode: "Dark mode",
+    product_select_size: "Select size", product_desc_title: "Description",
+    product_desc_text: (name) => `${name} — from the GIOVINCO collection, comfortable and durable footwear for men. Ideal for everyday wear.`,
+    product_comment_title: "Order note",
+    product_comment_placeholder: "E.g. color or other preferences...",
+    add_to_cart: "Add to cart", update_cart: "✓ Update",
+    orders_count: (n) => `${n} orders`,
+    order_history_title: "Order history",
+    order_history_empty_title: "No orders yet",
+    order_history_empty_desc: "Place your first order —<br>it'll appear here.",
+    order_card_size: "Size", order_card_qty: "pcs", order_card_total: "Total",
+    address_title: "Delivery address",
+    addr_name_label: "Name", addr_name_placeholder: "Your name",
+    addr_phone_label: "Phone number",
+    addr_address_label: "Address", addr_address_placeholder: "City, district, street, house...",
+    addr_location_label: "Location link (Yandex or Google Maps)",
+    addr_location_placeholder: "https://maps.google.com/... or https://yandex.uz/maps/...",
+    save: "Save",
+    cats: { all:"All", sneakers:"Sneakers", boots:"Boots", sport:"Sport", slippers:"Slides", classic:"Classic" }
+  }
+};
+
+let currentLang = localStorage.getItem('totsamiy_lang') || 'uz';
+
+function t(key, ...args){
+  const dict = I18N[currentLang] || I18N.uz;
+  const val = dict[key] !== undefined ? dict[key] : I18N.uz[key];
+  return typeof val === 'function' ? val(...args) : val;
+}
+function catLabel(catKey){
+  const dict = I18N[currentLang] || I18N.uz;
+  return (dict.cats && dict.cats[catKey]) || I18N.uz.cats[catKey] || catKey;
+}
+
+function setLang(lang){
+  currentLang = lang;
+  localStorage.setItem('totsamiy_lang', lang);
+  translateStaticPage();
+  updateLangButtons();
+  renderChips();
+  renderGrid();
+  renderFav();
+  renderCart();
+  updateOrdersSub();
+  updateAddressSub();
+}
+
+function updateLangButtons(){
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === currentLang));
+}
+
+function translateStaticPage(){
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  updateProfileGreeting();
+}
+
+let tgUser = null;
+
+function updateProfileGreeting(){
+  const nameEl = document.getElementById('profile-name');
+  const subEl = document.getElementById('profile-sub');
+  if(!nameEl || !subEl) return;
+  if(tgUser){
+    const name = tgUser.first_name || t('profile_guest');
+    nameEl.textContent = name;
+    subEl.textContent = tgUser.username ? '@' + tgUser.username : t('profile_customer');
+  } else {
+    nameEl.textContent = t('profile_guest');
+    subEl.textContent = t('profile_customer');
+  }
+}
+
+/* ---------- shoe icon variants (inline SVG, no external images) ---------- */
+function shoeSVG(color){
+  return `<svg class="shoe-svg" viewBox="0 0 120 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 52c0-8 6-14 14-16l24-8c6-2 10-6 14-11l6-8c2-3 6-4 9-2l4 3c3 2 3 6 1 9l-3 4c8 1 15 5 22 11 6 5 9 11 9 18 0 3-2 5-5 5H11c-3 0-5-2-5-5z" fill="${color}" opacity="0.92"/>
+    <path d="M6 52c0-8 6-14 14-16l24-8c6-2 10-6 14-11l6-8c2-3 6-4 9-2l4 3c3 2 3 6 1 9l-3 4c8 1 15 5 22 11 6 5 9 11 9 18 0 3-2 5-5 5H11c-3 0-5-2-5-5z" stroke="#171512" stroke-width="2"/>
+    <path d="M6 52h103" stroke="#171512" stroke-width="2"/>
+    <path d="M6 58h103" stroke="#171512" stroke-width="3" stroke-linecap="round"/>
+  </svg>`;
+}
+
+// Haqiqiy surat bo'lsa shuni, bo'lmasa chizilgan belgini ko'rsatadi
+function productVisual(p){
+  if(p.image) return `<img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
+  return shoeSVG(p.color);
+}
+
+const PALETTE = ['#FF4E1F','#6E7454','#171512','#B7501C','#3D3A32'];
+
+const PRODUCTS = [
+  {id:1, name:'Classic', cat:'sneakers', sizes:'40–45', price:389000, color:PALETTE[0]},
+  {id:2, name:'Street', cat:'sneakers', sizes:'41–46', price:429000, color:PALETTE[1]},
+  {id:3, name:'Trail GTX', cat:'boots', sizes:'40–44', price:565000, color:PALETTE[2]},
+  {id:4, name:'Runner', cat:'sport', sizes:'39–45', price:349000, color:PALETTE[3]},
+  {id:5, name:'Slide', cat:'slippers', sizes:'40–45', price:159000, color:PALETTE[4]},
+  {id:6, name:'Chelsea', cat:'classic', sizes:'40–44', price:610000, color:PALETTE[0]},
+  {id:7, name:'Court', cat:'sneakers', sizes:'40–46', price:399000, color:PALETTE[1]},
+  {id:8, name:'Storm', cat:'boots', sizes:'41–45', price:499000, color:PALETTE[2]},
+  {id:9, name:'Milano', cat:'classic', sizes:'40–44', price:650000, image:'https://raw.githubusercontent.com/tayvanchik/passo-bot/main/images/passo-milano.png'},
+  {id:10, name:'Torino', cat:'sneakers', sizes:'40–46', price:600000, image:'https://raw.githubusercontent.com/tayvanchik/passo-bot/main/images/passo-torino.png'},
+];
+
+const CATS = ['all','sneakers','boots','sport','slippers','classic'];
+
+let favorites = new Set();
+let cart = {}; // id -> {qty, size, comment}
+let activeCat = 'all';
+
+function fmt(n){ return n.toLocaleString('ru-RU').replace(/,/g,' ') + ' so\'m'; }
+
+function renderChips(){
+  const el = document.getElementById('chips');
+  el.innerHTML = CATS.map(c => `<button class="chip ${c===activeCat?'active':''}" onclick="setCat('${c}')">${catLabel(c)}</button>`).join('');
+}
+function setCat(c){ activeCat = c; renderChips(); renderGrid(); }
+
+function filterProducts(q){
+  renderGrid(q.trim().toLowerCase());
+}
+
+function renderGrid(query=''){
+  const grid = document.getElementById('grid');
+  let items = PRODUCTS.filter(p => activeCat==='all' || p.cat===activeCat);
+  if(query) items = items.filter(p => p.name.toLowerCase().includes(query));
+  grid.innerHTML = items.map(p => cardHTML(p)).join('') || `<div style="grid-column:1/-1;text-align:center;color:var(--muted);padding:30px 0;">${t('no_results')}</div>`;
+}
+
+function cardHTML(p){
+  const inCart = cart[p.id]?.qty > 0;
+  const isFav = favorites.has(p.id);
+  return `
+  <div class="pcard">
+    <div class="imgwrap ${p.image?'has-image':''}" onclick="openProduct(${p.id})">
+      <div class="ticket">${p.sizes}</div>
+      <div class="heart ${isFav?'active':''}" onclick="event.stopPropagation(); toggleFav(${p.id})">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 20s-7.5-4.6-10-9.2C.5 7 2.3 3.5 6 3c2.2-.3 4 .9 6 3.3C14 3.9 15.8 2.7 18 3c3.7.5 5.5 4 4 7.8C19.5 15.4 12 20 12 20z" stroke="#F5F1E8" stroke-width="2" stroke-linejoin="round"/></svg>
+      </div>
+      ${productVisual(p)}
+    </div>
+    <div class="pinfo" onclick="openProduct(${p.id})">
+      <div class="pname">${p.name}</div>
+      <div class="pcat">${catLabel(p.cat)}</div>
+      <div class="prow">
+        <div class="pprice mono">${fmt(p.price)}</div>
+        <button class="addbtn ${inCart?'in':''}" onclick="event.stopPropagation(); openProduct(${p.id})">${inCart ? '✓' : '+'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleFav(id){
+  favorites.has(id) ? favorites.delete(id) : favorites.add(id);
+  renderGrid();
+  renderFav();
+  updateProfileStats();
+  if(currentProductId === id) renderProductHeart();
+}
+
+function addToCart(id){
+  const p = PRODUCTS.find(x=>x.id===id);
+  const defaultSize = parseSizes(p.sizes)[0];
+  if(cart[id]){ cart[id].qty += 1; }
+  else{ cart[id] = { qty:1, size: defaultSize, comment:'' }; }
+  renderGrid();
+  renderCart();
+  updateBadge();
+  updateMainButton();
+}
+function changeQty(id, delta){
+  if(!cart[id]) return;
+  cart[id].qty += delta;
+  if(cart[id].qty <= 0) delete cart[id];
+  renderGrid();
+  renderCart();
+  updateBadge();
+  updateMainButton();
+}
+
+function updateBadge(){
+  const count = Object.values(cart).reduce((a,c)=>a+c.qty,0);
+  const badge = document.getElementById('cart-badge');
+  if(count>0){ badge.style.display='flex'; badge.textContent = count; }
+  else badge.style.display='none';
+  updateProfileStats();
+}
+
+function updateProfileStats(){
+  const cartCount = Object.values(cart).reduce((a,c)=>a+c.qty,0);
+  document.getElementById('stat-fav').textContent = favorites.size;
+  document.getElementById('stat-cart').textContent = cartCount;
+}
+
+function renderFav(){
+  const el = document.getElementById('fav-content');
+  const items = PRODUCTS.filter(p => favorites.has(p.id));
+  if(items.length===0){
+    el.innerHTML = `<div class="empty">
+      <div class="duck">🧡</div>
+      <h3>${t('fav_empty_title')}</h3>
+      <p>${t('fav_empty_desc')}</p>
+      <button class="cta" onclick="go('catalog')">${t('fav_empty_btn')}</button>
+    </div>`;
+  } else {
+    el.innerHTML = `<div class="grid">${items.map(p=>cardHTML(p)).join('')}</div>`;
+  }
+}
+
+function renderCart(){
+  const el = document.getElementById('cart-content');
+  const ids = Object.keys(cart);
+  if(ids.length===0){
+    el.innerHTML = `<div class="empty">
+      <div class="duck">🛒</div>
+      <h3>${t('cart_empty_title')}</h3>
+      <p>${t('cart_empty_desc')}</p>
+      <button class="cta" onclick="go('catalog')">${t('cart_empty_btn')}</button>
+    </div>`;
+    return;
+  }
+  let total = 0;
+  const rows = ids.map(id => {
+    const p = PRODUCTS.find(x=>x.id==id);
+    const entry = cart[id];
+    total += p.price * entry.qty;
+    return `<div class="cart-item">
+      <div class="thumb">${productVisual(p)}</div>
+      <div class="meta">
+        <div class="n">${p.name}</div>
+        <div class="s mono">${fmt(p.price)} &middot; ${t('cart_size_label')} ${entry.size}</div>
+        ${entry.comment ? `<div class="cart-comment">"${entry.comment}"</div>` : ''}
+      </div>
+      <div class="qty">
+        <button onclick="changeQty(${p.id}, -1)">−</button>
+        <span>${entry.qty}</span>
+        <button onclick="changeQty(${p.id}, 1)">+</button>
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML = rows + `
+    <div class="cart-summary">
+      <div class="sumrow"><span>${t('cart_products')}</span><span class="mono">${fmt(total)}</span></div>
+      <div class="sumrow"><span>${t('cart_delivery')}</span><span>${t('cart_delivery_val')}</span></div>
+      <div class="sumrow total"><span>${t('cart_total')}</span><span class="mono">${fmt(total)}</span></div>
+      <button class="checkout" onclick="checkout()">${t('cart_checkout')}</button>
+    </div>`;
+}
+
+const API_URL = 'https://passo-bot-production.up.railway.app';
+
+async function checkout(){
+  const items = Object.entries(cart).map(([id,entry]) => {
+    const p = PRODUCTS.find(x=>x.id==id);
+    return {name:p.name, size:entry.size, qty:entry.qty, price:p.price, comment:entry.comment};
+  });
+  const total = items.reduce((sum, it) => sum + it.price * it.qty, 0);
+  const address = getAddress();
+  const tgUser = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp.initDataUnsafe?.user : null;
+
+  const checkoutBtn = document.querySelector('.checkout');
+  if(checkoutBtn){ checkoutBtn.disabled = true; checkoutBtn.textContent = t('cart_sending'); }
+
+  try {
+    const res = await fetch(API_URL + '/api/order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, address, user: tgUser })
+    });
+    const result = await res.json();
+    if(result.ok){
+      saveOrder(items, total);
+      cart = {};
+      renderGrid();
+      renderCart();
+      updateBadge();
+      showOrderSuccess();
+    } else {
+      alert(t('order_error'));
+    }
+  } catch(err) {
+    alert(t('order_network_error'));
+  } finally {
+    if(checkoutBtn){ checkoutBtn.disabled = false; checkoutBtn.textContent = t('cart_checkout'); }
+  }
+}
+
+function showOrderSuccess(){
+  document.getElementById('info-title').textContent = '';
+  document.getElementById('info-body').innerHTML = `
+    <div class="empty" style="padding-top:40px;">
+      <div class="duck">✅</div>
+      <h3>${t('order_success_title')}</h3>
+      <p>${t('order_success_desc')}</p>
+      <button class="cta" onclick="closeInfoOverlay(); go('catalog');">${t('order_success_btn')}</button>
+    </div>
+  `;
+  document.getElementById('info-overlay').classList.add('active');
+}
+
+/* ---------- nav ---------- */
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.navbtn').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view)?.classList.add('active');
+  document.getElementById('nav-'+view)?.classList.add('active');
+  document.getElementById('search-block').style.display = (view === 'catalog') ? '' : 'none';
+  updateMainButton(view);
+}
+
+function updateMainButton(currentView){
+  if(!(window.Telegram && window.Telegram.WebApp)) return;
+  const tg = window.Telegram.WebApp;
+  const count = Object.values(cart).reduce((a,b)=>a+b,0);
+  const isCartView = document.getElementById('view-cart').classList.contains('active');
+  if(count>0 && isCartView){
+    tg.MainButton.setText(t('cart_checkout'));
+    tg.MainButton.show();
+    tg.MainButton.onClick(checkout);
+  } else {
+    tg.MainButton.hide();
+  }
+}
+
+/* ---------- product detail ---------- */
+let currentProductId = null;
+let selectedSize = null;
+
+function parseSizes(rangeStr){
+  const [a,b] = rangeStr.replace('–','-').split('-').map(s=>parseInt(s.trim()));
+  const arr = [];
+  for(let i=a;i<=b;i++) arr.push(i);
+  return arr;
+}
+
+function openProduct(id){
+  const p = PRODUCTS.find(x=>x.id===id);
+  currentProductId = id;
+  const sizes = parseSizes(p.sizes);
+  const existing = cart[id];
+  selectedSize = existing ? existing.size : sizes[0];
+  document.getElementById('product-body').innerHTML = `
+    <div class="product-hero ${p.image ? 'has-image' : ''}">
+      <div class="ticket">${p.sizes}</div>
+      ${productVisual(p)}
+    </div>
+    <div class="product-body-inner">
+      <div class="product-cat">${catLabel(p.cat)}</div>
+      <div class="product-name">${p.name}</div>
+      <div class="product-price mono">${fmt(p.price)}</div>
+
+      <div class="product-section-title">${t('product_select_size')}</div>
+      <div class="size-row" id="size-row">
+        ${sizes.map(s => `<button class="size-chip ${s===selectedSize?'active':''}" data-size="${s}" onclick="selectSize(${s})">${s}</button>`).join('')}
+      </div>
+
+      <div class="product-section-title">${t('product_desc_title')}</div>
+      <div class="product-desc">${t('product_desc_text', p.name)}</div>
+
+      <div class="product-section-title">${t('product_comment_title')}</div>
+      <textarea class="comment-box" id="product-comment" placeholder="${t('product_comment_placeholder')}">${existing ? existing.comment : ''}</textarea>
+    </div>
+  `;
+  renderProductHeart();
+  renderProductActionbar();
+  document.getElementById('product-overlay').classList.add('active');
+  document.getElementById('product-overlay').scrollTop = 0;
+  if(window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.MainButton.hide();
+}
+
+function selectSize(s){
+  selectedSize = s;
+  document.querySelectorAll('.size-chip').forEach(el=>{
+    el.classList.toggle('active', parseInt(el.dataset.size) === s);
+  });
+}
+
+function renderProductHeart(){
+  const heart = document.getElementById('product-heart');
+  const isFav = favorites.has(currentProductId);
+  heart.classList.toggle('active', isFav);
+}
+
+function toggleFavFromProduct(){
+  toggleFav(currentProductId);
+}
+
+function renderProductActionbar(){
+  let bar = document.getElementById('product-actionbar');
+  if(bar) bar.remove();
+  const p = PRODUCTS.find(x=>x.id===currentProductId);
+  const inCart = cart[p.id]?.qty > 0;
+  bar = document.createElement('div');
+  bar.className = 'product-actionbar';
+  bar.id = 'product-actionbar';
+  bar.innerHTML = `
+    <div class="price mono">${fmt(p.price)}</div>
+    <button class="addcart-btn ${inCart?'in':''}" onclick="addToCartFromProduct()">${inCart ? t('update_cart') : t('add_to_cart')}</button>
+  `;
+  document.getElementById('product-overlay').appendChild(bar);
+}
+
+function addToCartFromProduct(){
+  const p = PRODUCTS.find(x=>x.id===currentProductId);
+  const comment = document.getElementById('product-comment')?.value.trim() || '';
+  const qty = cart[p.id]?.qty || 1;
+  cart[p.id] = { qty, size: selectedSize, comment };
+  renderGrid();
+  renderCart();
+  updateBadge();
+  updateMainButton();
+  renderProductActionbar();
+}
+
+function closeProduct(){
+  document.getElementById('product-overlay').classList.remove('active');
+  currentProductId = null;
+}
+
+/* ---------- order history ---------- */
+function getOrders(){
+  try{ return JSON.parse(localStorage.getItem('passo_orders') || '[]'); }
+  catch(e){ return []; }
+}
+function saveOrder(items, total){
+  const orders = getOrders();
+  orders.unshift({ date: new Date().toLocaleString('uz-UZ'), items, total });
+  localStorage.setItem('passo_orders', JSON.stringify(orders));
+  updateOrdersSub();
+}
+function updateOrdersSub(){
+  const count = getOrders().length;
+  const el = document.getElementById('orders-sub');
+  if(el) el.textContent = count > 0 ? t('orders_count', count) : t('row_no_orders');
+  const statEl = document.getElementById('stat-orders');
+  if(statEl) statEl.textContent = count;
+}
+
+function openOrderHistory(){
+  const orders = getOrders();
+  document.getElementById('info-title').textContent = t('order_history_title');
+  const body = document.getElementById('info-body');
+  if(orders.length === 0){
+    body.innerHTML = `<div class="empty" style="padding-top:20px;">
+      <div class="duck">📦</div>
+      <h3>${t('order_history_empty_title')}</h3>
+      <p>${t('order_history_empty_desc')}</p>
+    </div>`;
+  } else {
+    body.innerHTML = orders.map(o => `
+      <div class="order-card">
+        <div class="date">${o.date}</div>
+        <div class="items">${o.items.map(it => `${it.name} · ${t('order_card_size')} ${it.size} · ${it.qty} ${t('order_card_qty')}`).join('<br>')}</div>
+        <div class="total mono">${t('order_card_total')}: ${fmt(o.total)}</div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('info-overlay').classList.add('active');
+}
+
+/* ---------- delivery address ---------- */
+function getAddress(){
+  try{ return JSON.parse(localStorage.getItem('passo_address') || 'null'); }
+  catch(e){ return null; }
+}
+function updateAddressSub(){
+  const addr = getAddress();
+  const el = document.getElementById('address-sub');
+  if(el) el.textContent = addr ? addr.address : t('row_no_address');
+}
+
+function openAddressForm(){
+  const addr = getAddress() || { name:'', phone:'', address:'', location:'' };
+  document.getElementById('info-title').textContent = t('address_title');
+  document.getElementById('info-body').innerHTML = `
+    <div class="addr-label">${t('addr_name_label')}</div>
+    <input class="addr-input" id="addr-name" placeholder="${t('addr_name_placeholder')}" value="${addr.name}">
+    <div class="addr-label">${t('addr_phone_label')}</div>
+    <input class="addr-input" id="addr-phone" placeholder="+998 __ ___ __ __" value="${addr.phone}">
+    <div class="addr-label">${t('addr_address_label')}</div>
+    <textarea class="comment-box" id="addr-text" placeholder="${t('addr_address_placeholder')}">${addr.address}</textarea>
+    <div class="addr-label" style="margin-top:12px;">${t('addr_location_label')}</div>
+    <input class="addr-input" id="addr-location" placeholder="${t('addr_location_placeholder')}" value="${addr.location || ''}">
+    <button class="save-btn" onclick="saveAddress()">${t('save')}</button>
+  `;
+  document.getElementById('info-overlay').classList.add('active');
+}
+
+function saveAddress(){
+  const name = document.getElementById('addr-name').value.trim();
+  const phone = document.getElementById('addr-phone').value.trim();
+  const address = document.getElementById('addr-text').value.trim();
+  const location = document.getElementById('addr-location').value.trim();
+  localStorage.setItem('passo_address', JSON.stringify({ name, phone, address, location }));
+  updateAddressSub();
+  closeInfoOverlay();
+}
+
+function closeInfoOverlay(){
+  document.getElementById('info-overlay').classList.remove('active');
+}
+
+/* ---------- init ---------- */
+function enableDragScroll(el){
+  let isDown=false, startX, scrollLeft;
+  el.addEventListener('mousedown', e=>{
+    isDown=true; el.classList.add('dragging');
+    startX = e.pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+  });
+  window.addEventListener('mouseup', ()=>{ isDown=false; el.classList.remove('dragging'); });
+  el.addEventListener('mouseleave', ()=>{ isDown=false; el.classList.remove('dragging'); });
+  el.addEventListener('mousemove', e=>{
+    if(!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    el.scrollLeft = scrollLeft - (x - startX);
+  });
+}
+
+/* ---------- theme ---------- */
+let currentTheme = localStorage.getItem('giovinco_theme') || 'dark';
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', currentTheme === 'light' ? 'light' : '');
+  const toggle = document.getElementById('theme-toggle');
+  if(toggle) toggle.classList.toggle('on', currentTheme === 'dark');
+}
+function toggleTheme(){
+  currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+  localStorage.setItem('giovinco_theme', currentTheme);
+  applyTheme();
+}
+
+function init(){
+  applyTheme();
+  translateStaticPage();
+  updateLangButtons();
+  renderChips();
+  renderGrid();
+  renderFav();
+  renderCart();
+  updateProfileStats();
+  updateOrdersSub();
+  updateAddressSub();
+  enableDragScroll(document.getElementById('chips'));
+
+  if(window.Telegram && window.Telegram.WebApp){
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+    const user = tg.initDataUnsafe?.user;
+    if(user){
+      tgUser = user;
+      updateProfileGreeting();
+
+      const avatarEl = document.getElementById('profile-initial');
+      if(user.photo_url){
+        avatarEl.style.backgroundImage = `url(${user.photo_url})`;
+        avatarEl.style.backgroundSize = 'cover';
+        avatarEl.style.backgroundPosition = 'center';
+        avatarEl.textContent = '';
+      } else {
+        avatarEl.textContent = (user.first_name || t('profile_guest'))[0].toUpperCase();
+      }
+    } else {
+      updateProfileGreeting();
+    }
+  } else {
+    updateProfileGreeting();
+  }
+}
+init();
+</script>
+</body>
+</html>
