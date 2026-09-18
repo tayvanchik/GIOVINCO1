@@ -47,36 +47,36 @@ const WELCOME_TEXTS = {
   uz:
     "Bu <b>GIOVINCO</b> — erkaklar oyoq kiyimlari.\n\n" +
     "Sizga yoqqan modelni tanlaysiz — biz esa buyurtmangiz asosida olib kelamiz.\n\n" +
-    "✅ Sifatli mahsulotlar\n" +
-    "✅ Zamonaviy modellar\n" +
-    "✅ Turli xil razmerlar\n" +
-    "✅ Buyurtma asosida olib kelish\n\n" +
+    " Sifatli mahsulotlar\n" +
+    " Zamonaviy modellar\n" +
+    " Turli xil razmerlar\n" +
+    " Buyurtma asosida olib kelish\n\n" +
     "Siz tanlang — biz olib kelamiz.\n\n" +
     "Kerakli modelni tanlang va buyurtma berish uchun pastdagi tugmani bosing 👇",
   ru:
     "Это <b>GIOVINCO</b> — мужская обувь.\n\n" +
     "Вы выбираете понравившуюся модель — мы доставляем по вашему заказу.\n\n" +
-    "✅ Качественная продукция\n" +
-    "✅ Современные модели\n" +
-    "✅ Разные размеры\n" +
-    "✅ Доставка под заказ\n\n" +
+    " Качественная продукция\n" +
+    " Современные модели\n" +
+    " Разные размеры\n" +
+    " Доставка под заказ\n\n" +
     "Выбирайте вы — привезём мы.\n\n" +
     "Выберите нужную модель и нажмите кнопку ниже, чтобы сделать заказ 👇",
   en:
     "This is <b>GIOVINCO</b> — men's footwear.\n\n" +
     "You pick the model you like — we deliver it to you.\n\n" +
-    "✅ Quality products\n" +
-    "✅ Modern models\n" +
-    "✅ Various sizes\n" +
-    "✅ Made-to-order delivery\n\n" +
+    " Quality products\n" +
+    " Modern models\n" +
+    " Various sizes\n" +
+    " Made-to-order delivery\n\n" +
     "You choose — we deliver.\n\n" +
     "Pick the model you want and tap the button below to place your order 👇"
 };
 
 const OPEN_SHOP_BTN = {
-  uz: "🛍 Do'konni ochish",
-  ru: "🛍 Открыть магазин",
-  en: "🛍 Open shop"
+  uz: " Do'konni ochish",
+  ru: " Открыть магазин",
+  en: " Open shop"
 };
 
 // /start — avval til tanlash tugmalari chiqadi
