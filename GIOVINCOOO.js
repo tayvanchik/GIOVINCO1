@@ -128,6 +128,12 @@ async function resolveCoordinatesFromLink(url) {
 async function processOrder(data, customer, replyChatId) {
   const customerName = customer?.first_name || data.address?.name || 'Mijoz';
   const customerUsername = customer?.username ? `@${customer.username}` : (data.source === 'website' ? 'sayt orqali' : "username yo'q");
+  const customerProfileLink = customer?.username
+    ? `https://t.me/${customer.username}`
+    : (customer?.id ? `tg://user?id=${customer.id}` : null);
+  const customerNameLinked = customerProfileLink
+    ? `<a href="${customerProfileLink}">${customerName}</a>`
+    : customerName;
 
   let total = 0;
   let itemsText = '';
@@ -155,7 +161,7 @@ async function processOrder(data, customer, replyChatId) {
 
   const adminMessage =
     `🆕 <b>Yangi buyurtma — GIOVINCO</b>\n` +
-    `👤 Mijoz: ${customerName} (${customerUsername})\n` +
+    `👤 Mijoz: ${customerNameLinked} (${customerUsername})\n` +
     (replyChatId ? `🆔 Chat ID: <code>${replyChatId}</code>\n` : '') +
     sourceTag +
     itemsText +
