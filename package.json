@@ -1,0 +1,13 @@
+{
+  "name": "passo-bot",
+  "version": "1.0.0",
+  "description": "PASSO Telegram bot - buyurtmalarni admin'ga yetkazadi",
+  "main": "GIOVINCOOO.js",
+  "scripts": {
+    "start": "node GIOVINCOOO.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.66.0",
+    "express": "^4.19.2"
+  }
+}
