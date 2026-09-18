@@ -36,9 +36,15 @@ if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-// Mini App tugmasini ko'rsatuvchi /start buyrug'i
-bot.onText(/\/start/, (msg) => {
-  const caption =
+// Har bir foydalanuvchi tanlagan tilni vaqtincha xotirada saqlab turamiz
+// (server qayta ishga tushsa, tozalanadi — bu oddiy yechim)
+const userLangs = {};
+
+const HERO_IMAGE_URL = 'https://raw.githubusercontent.com/tayvanchik/GIOVINCO1/main/GIOVINCOO.jpg';
+const MINI_APP_URL = 'https://tayvanchik.github.io/GIOVINCO1/';
+
+const WELCOME_TEXTS = {
+  uz:
     "Bu <b>GIOVINCO</b> — erkaklar oyoq kiyimlari.\n\n" +
     "Sizga yoqqan modelni tanlaysiz — biz esa buyurtmangiz asosida olib kelamiz.\n\n" +
     "✅ Sifatli mahsulotlar\n" +
@@ -46,25 +52,73 @@ bot.onText(/\/start/, (msg) => {
     "✅ Turli xil razmerlar\n" +
     "✅ Buyurtma asosida olib kelish\n\n" +
     "Siz tanlang — biz olib kelamiz.\n\n" +
-    "Kerakli modelni tanlang va buyurtma berish uchun pastdagi tugmani bosing 👇";
+    "Kerakli modelni tanlang va buyurtma berish uchun pastdagi tugmani bosing 👇",
+  ru:
+    "Это <b>GIOVINCO</b> — мужская обувь.\n\n" +
+    "Вы выбираете понравившуюся модель — мы доставляем по вашему заказу.\n\n" +
+    "✅ Качественная продукция\n" +
+    "✅ Современные модели\n" +
+    "✅ Разные размеры\n" +
+    "✅ Доставка под заказ\n\n" +
+    "Выбирайте вы — привезём мы.\n\n" +
+    "Выберите нужную модель и нажмите кнопку ниже, чтобы сделать заказ 👇",
+  en:
+    "This is <b>GIOVINCO</b> — men's footwear.\n\n" +
+    "You pick the model you like — we deliver it to you.\n\n" +
+    "✅ Quality products\n" +
+    "✅ Modern models\n" +
+    "✅ Various sizes\n" +
+    "✅ Made-to-order delivery\n\n" +
+    "You choose — we deliver.\n\n" +
+    "Pick the model you want and tap the button below to place your order 👇"
+};
 
+const OPEN_SHOP_BTN = {
+  uz: "🛍 Do'konni ochish",
+  ru: "🛍 Открыть магазин",
+  en: "🛍 Open shop"
+};
+
+// /start — avval til tanlash tugmalari chiqadi
+bot.onText(/\/start/, (msg) => {
+  bot.sendMessage(msg.chat.id, "🌐 Tilni tanlang / Выберите язык / Choose language:", {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🇺🇿 O'zbekcha", callback_data: "lang_uz" }],
+        [{ text: "🇷🇺 Русский", callback_data: "lang_ru" }],
+        [{ text: "🇬🇧 English", callback_data: "lang_en" }]
+      ]
+    }
+  });
+});
+
+// Til tanlangandan keyin — shu tilda xush kelibsiz xabarini yuboramiz
+bot.on('callback_query', async (query) => {
+  const data = query.data;
+  if (!data || !data.startsWith('lang_')) return;
+
+  const lang = data.replace('lang_', ''); // uz | ru | en
+  const chatId = query.message.chat.id;
+  userLangs[chatId] = lang;
+
+  bot.answerCallbackQuery(query.id).catch(() => {});
+
+  const caption = WELCOME_TEXTS[lang] || WELCOME_TEXTS.uz;
   const options = {
     caption,
     parse_mode: 'HTML',
     reply_markup: {
       inline_keyboard: [[{
-        text: "🛍 Do'konni ochish",
-        web_app: { url: 'https://tayvanchik.github.io/GIOVINCO1/' }
+        text: (OPEN_SHOP_BTN[lang] || OPEN_SHOP_BTN.uz),
+        web_app: { url: MINI_APP_URL }
       }]]
     }
   };
 
-  const HERO_IMAGE_URL = 'https://raw.githubusercontent.com/tayvanchik/GIOVINCO1/main/GIOVINCOO.jpg';
-
   if (HERO_IMAGE_URL) {
-    bot.sendPhoto(msg.chat.id, HERO_IMAGE_URL, options);
+    bot.sendPhoto(chatId, HERO_IMAGE_URL, options).catch(() => {});
   } else {
-    bot.sendMessage(msg.chat.id, caption, options);
+    bot.sendMessage(chatId, caption, options).catch(() => {});
   }
 });
 
