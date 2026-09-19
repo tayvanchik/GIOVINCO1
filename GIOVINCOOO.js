@@ -25,6 +25,7 @@
 
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
+const fs = require('fs');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
@@ -32,6 +33,33 @@ const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
 if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
   console.error('XATOLIK: BOT_TOKEN va ADMIN_CHAT_ID muhit o\'zgaruvchilari kiritilmagan!');
   process.exit(1);
+}
+
+// ---------- Botdan foydalangan userlar ro'yxati (post yuborish uchun) ----------
+const USERS_FILE = './users.json';
+let knownUsers = new Set();
+try {
+  if (fs.existsSync(USERS_FILE)) {
+    const arr = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    knownUsers = new Set(arr);
+  }
+} catch (e) {
+  console.error('users.json o\'qishda xatolik:', e.message);
+}
+
+function saveUsers() {
+  try {
+    fs.writeFileSync(USERS_FILE, JSON.stringify([...knownUsers]));
+  } catch (e) {
+    console.error('users.json yozishda xatolik:', e.message);
+  }
+}
+
+function addUser(chatId) {
+  if (!knownUsers.has(chatId)) {
+    knownUsers.add(chatId);
+    saveUsers();
+  }
 }
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
@@ -47,40 +75,41 @@ const WELCOME_TEXTS = {
   uz:
     "Bu <b>GIOVINCO</b> — erkaklar oyoq kiyimlari.\n\n" +
     "Sizga yoqqan modelni tanlaysiz — biz esa buyurtmangiz asosida olib kelamiz.\n\n" +
-    " Sifatli mahsulotlar\n" +
-    " Zamonaviy modellar\n" +
-    " Turli xil razmerlar\n" +
-    " Buyurtma asosida olib kelish\n\n" +
+    "✅ Sifatli mahsulotlar\n" +
+    "✅ Zamonaviy modellar\n" +
+    "✅ Turli xil razmerlar\n" +
+    "✅ Buyurtma asosida olib kelish\n\n" +
     "Siz tanlang — biz olib kelamiz.\n\n" +
     "Kerakli modelni tanlang va buyurtma berish uchun pastdagi tugmani bosing 👇",
   ru:
     "Это <b>GIOVINCO</b> — мужская обувь.\n\n" +
     "Вы выбираете понравившуюся модель — мы доставляем по вашему заказу.\n\n" +
-    " Качественная продукция\n" +
-    " Современные модели\n" +
-    " Разные размеры\n" +
-    " Доставка под заказ\n\n" +
+    "✅ Качественная продукция\n" +
+    "✅ Современные модели\n" +
+    "✅ Разные размеры\n" +
+    "✅ Доставка под заказ\n\n" +
     "Выбирайте вы — привезём мы.\n\n" +
     "Выберите нужную модель и нажмите кнопку ниже, чтобы сделать заказ 👇",
   en:
     "This is <b>GIOVINCO</b> — men's footwear.\n\n" +
     "You pick the model you like — we deliver it to you.\n\n" +
-    " Quality products\n" +
-    " Modern models\n" +
-    " Various sizes\n" +
-    " Made-to-order delivery\n\n" +
+    "✅ Quality products\n" +
+    "✅ Modern models\n" +
+    "✅ Various sizes\n" +
+    "✅ Made-to-order delivery\n\n" +
     "You choose — we deliver.\n\n" +
     "Pick the model you want and tap the button below to place your order 👇"
 };
 
 const OPEN_SHOP_BTN = {
-  uz: " Do'konni ochish",
-  ru: " Открыть магазин",
-  en: " Open shop"
+  uz: "🛍 Do'konni ochish",
+  ru: "🛍 Открыть магазин",
+  en: "🛍 Open shop"
 };
 
 // /start — avval til tanlash tugmalari chiqadi
 bot.onText(/\/start/, (msg) => {
+  addUser(msg.chat.id);
   bot.sendMessage(msg.chat.id, "🌐 Tilni tanlang / Выберите язык / Choose language:", {
     reply_markup: {
       inline_keyboard: [
@@ -245,14 +274,77 @@ async function processOrder(data, customer, replyChatId) {
 
 // Eski usul: Reply Keyboard orqali ochilgan Mini App'lar uchun (agar bo'lsa)
 bot.on('message', async (msg) => {
-  if (!msg.web_app_data) return;
-  try {
-    const data = JSON.parse(msg.web_app_data.data);
-    if (data.type !== 'order') return;
-    await processOrder(data, msg.from, msg.chat.id);
-  } catch (err) {
-    console.error('Buyurtmani qayta ishlashda xatolik:', err);
+  if (msg.web_app_data) {
+    try {
+      const data = JSON.parse(msg.web_app_data.data);
+      if (data.type === 'order') {
+        await processOrder(data, msg.from, msg.chat.id);
+      }
+    } catch (err) {
+      console.error('Buyurtmani qayta ishlashda xatolik:', err);
+    }
+    return;
   }
+
+  // Oddiy (Mini App bo'lmagan) xabar yuborgan har bir userni ro'yxatga qo'shamiz
+  addUser(msg.chat.id);
+
+  // ---------- Faqat ADMIN uchun: /post — hammaga post (e'lon) yuborish ----------
+  if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return;
+
+  const rawText = msg.text || msg.caption || '';
+  if (!rawText.startsWith('/post')) return;
+
+  const afterCommand = rawText.replace(/^\/post\s*/, '').trim();
+
+  // Ixtiyoriy tugma: "Matn | Tugma nomi | https://havola"
+  const parts = afterCommand.split('|').map(p => p.trim());
+  const postText = parts[0] || '';
+  const btnLabel = parts[1] || null;
+  const btnUrl = parts[2] || null;
+
+  let replyMarkup = undefined;
+  if (btnLabel && btnUrl) {
+    replyMarkup = { inline_keyboard: [[{ text: btnLabel, url: btnUrl }]] };
+  }
+
+  if (!postText && !msg.photo) {
+    bot.sendMessage(ADMIN_CHAT_ID,
+      "✍️ Post matnini kiriting:\n/post Matningiz shu yerda\n\n" +
+      "Tugma bilan yubormoqchi bo'lsangiz:\n/post Matningiz | Obuna bo'lish | https://t.me/giovincouz\n\n" +
+      "Rasm bilan post qilish uchun — rasm yuborib, tagiga (caption) shu buyruqni yozing."
+    );
+    return;
+  }
+
+  const userIds = [...knownUsers];
+  bot.sendMessage(ADMIN_CHAT_ID, `📢 Post ${userIds.length} ta foydalanuvchiga yuborilmoqda...`);
+
+  let sent = 0, failed = 0;
+
+  for (const chatId of userIds) {
+    try {
+      if (msg.photo && msg.photo.length > 0) {
+        const fileId = msg.photo[msg.photo.length - 1].file_id;
+        await bot.sendPhoto(chatId, fileId, {
+          ...(postText ? { caption: postText, parse_mode: 'HTML' } : {}),
+          ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+        });
+      } else {
+        await bot.sendMessage(chatId, postText, {
+          parse_mode: 'HTML',
+          ...(replyMarkup ? { reply_markup: replyMarkup } : {})
+        });
+      }
+      sent++;
+    } catch (e) {
+      failed++; // ehtimol foydalanuvchi botni bloklagan
+    }
+    // Telegram flood-limitiga tushmaslik uchun ozgina pauza
+    await new Promise(r => setTimeout(r, 40));
+  }
+
+  bot.sendMessage(ADMIN_CHAT_ID, `✅ Post yuborildi.\nYetdi: ${sent}\nYetmadi (bloklangan/xatolik): ${failed}`);
 });
 
 // ---------- Web-server (Mini App'dan to'g'ridan-to'g'ri kelgan buyurtmalar uchun) ----------
