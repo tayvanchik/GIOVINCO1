@@ -297,21 +297,40 @@ bot.on('message', async (msg) => {
 
   const afterCommand = rawText.replace(/^\/post\s*/, '').trim();
 
-  // Ixtiyoriy tugma: "Matn | Tugma nomi | https://havola"
-  const parts = afterCommand.split('|').map(p => p.trim());
-  const postText = parts[0] || '';
-  const btnLabel = parts[1] || null;
-  const btnUrl = parts[2] || null;
+  // 3 tilli post: "UZ blok === RU blok === EN blok" (har biri ichida "Matn | Tugma nomi | URL")
+  const langBlocks = afterCommand.split('===').map(b => b.trim()).filter(Boolean);
 
-  let replyMarkup = undefined;
-  if (btnLabel && btnUrl) {
-    replyMarkup = { inline_keyboard: [[{ text: btnLabel, url: btnUrl }]] };
+  function parseBlock(block) {
+    const parts = block.split('|').map(p => p.trim());
+    const text = parts[0] || '';
+    const btnLabel = parts[1] || null;
+    const btnUrl = parts[2] || null;
+    const replyMarkup = (btnLabel && btnUrl)
+      ? { inline_keyboard: [[{ text: btnLabel, url: btnUrl }]] }
+      : undefined;
+    return { text, replyMarkup };
   }
 
-  if (!postText && !msg.photo) {
+  let postByLang;
+  if (langBlocks.length >= 2) {
+    // Bir nechta blok berilgan bo'lsa — tartib bo'yicha UZ, RU, EN deb qabul qilamiz
+    postByLang = {
+      uz: parseBlock(langBlocks[0]),
+      ru: parseBlock(langBlocks[1] || langBlocks[0]),
+      en: parseBlock(langBlocks[2] || langBlocks[0])
+    };
+  } else {
+    // Faqat bitta matn berilgan bo'lsa — hammaga bir xil tilda ketadi
+    const single = parseBlock(afterCommand);
+    postByLang = { uz: single, ru: single, en: single };
+  }
+
+  if (!postByLang.uz.text && !msg.photo) {
     bot.sendMessage(ADMIN_CHAT_ID,
       "✍️ Post matnini kiriting:\n/post Matningiz shu yerda\n\n" +
-      "Tugma bilan yubormoqchi bo'lsangiz:\n/post Matningiz | Obuna bo'lish | https://t.me/giovincouz\n\n" +
+      "Tugma bilan:\n/post Matn | Tugma nomi | https://t.me/giovincouz\n\n" +
+      "3 tilda (har kim o'zi tanlagan tilda ko'radi):\n" +
+      "/post UZ matn | UZ tugma | url === RU matn | RU tugma | url === EN matn | EN tugma | url\n\n" +
       "Rasm bilan post qilish uchun — rasm yuborib, tagiga (caption) shu buyruqni yozing."
     );
     return;
@@ -324,6 +343,9 @@ bot.on('message', async (msg) => {
 
   for (const chatId of userIds) {
     try {
+      const lang = userLangs[chatId] || 'uz';
+      const { text: postText, replyMarkup } = postByLang[lang] || postByLang.uz;
+
       if (msg.photo && msg.photo.length > 0) {
         const fileId = msg.photo[msg.photo.length - 1].file_id;
         await bot.sendPhoto(chatId, fileId, {
