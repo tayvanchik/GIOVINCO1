@@ -419,7 +419,7 @@ bot.on('message', async (msg) => {
       .join('\n\n');
     bot.sendMessage(msg.chat.id,
       `📋 <b>Katalogdagi mahsulotlar (${products.length} ta):</b>\n\n${list}\n\n` +
-      `O'chirish uchun: /ochir <ID>\nMasalan: /ochir ${products[0].id}`,
+      `O'chirish uchun: /ochir [ID]\nMasalan: /ochir ${products[0].id}`,
       { parse_mode: 'HTML' }
     );
     return;
