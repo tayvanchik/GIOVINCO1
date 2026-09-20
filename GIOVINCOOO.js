@@ -4,8 +4,8 @@
  * Bu skript ikkita vazifani bajaradi:
  * 1) Telegram bot sifatida ishlaydi (/start buyrug'i)
  * 2) Kichik web-server sifatida ishlaydi — Mini App'dan (passo-miniapp.html)
- *    kelgan buyurtmalarni internet orqali qabul qilib, ADMIN_CHAT_ID'ga
- *    (ya'ni sizga) to'liq ma'lumot — jumladan mijoz yozgan IZOH bilan
+ *    kelgan buyurtmalarni internet orqali qabul qilib, adminlarga
+ *    to'liq ma'lumot — jumladan mijoz yozgan IZOH bilan
  *    birga — xabar qilib yuboradi.
  *
  * Buyurtma qanday tugma orqali ochilishidan qat'iy nazar (Menu Button,
@@ -16,6 +16,8 @@
  *   1) npm init -y
  *   2) npm install node-telegram-bot-api express
  *   3) Railway'da BOT_TOKEN va ADMIN_CHAT_ID muhit o'zgaruvchilarini kiriting
+ *      (bir nechta admin kerak bo'lsa, ADMIN_CHAT_IDS = "111,222,333"
+ *      kabi vergul bilan ajratib kiriting)
  *   4) node passo-bot.js
  *
  * ADMIN_CHAT_ID'ni qanday topish mumkin:
@@ -29,7 +31,16 @@ const fs = require('fs');
 const path = require('path');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID; // asosiy admin — buyurtma/post javoblari shu yerga ham boradi
+// Qo'shimcha adminlar uchun (ixtiyoriy): Railway'da ADMIN_CHAT_IDS = "123456,789012" kabi, vergul bilan
+const ADMIN_IDS = (process.env.ADMIN_CHAT_IDS || String(ADMIN_CHAT_ID || ''))
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+function isAdmin(chatId) {
+  return ADMIN_IDS.includes(String(chatId));
+}
 // Bot server o'zining ommaviy (public) manzili — rasm URL'larini shakllantirish uchun kerak
 const PUBLIC_URL = process.env.PUBLIC_URL || 'https://passo-bot-production.up.railway.app';
 
@@ -301,17 +312,19 @@ async function processOrder(data, customer, replyChatId) {
     addressText +
     `\n💰 <b>Jami: ${total.toLocaleString('ru-RU')} so'm</b>`;
 
-  // Admin (siz)ga yuboriladi
-  bot.sendMessage(ADMIN_CHAT_ID, adminMessage, { parse_mode: 'HTML' });
+  // Barcha adminlarga yuboriladi
+  ADMIN_IDS.forEach(id => {
+    bot.sendMessage(id, adminMessage, { parse_mode: 'HTML' }).catch(() => {});
+  });
 
   // Lokatsiya bo'lsa — haqiqiy Telegram pin (joylashuv) sifatida alohida yuboriladi
   if (data.address && data.address.location) {
     const coords = await resolveCoordinatesFromLink(data.address.location);
     if (coords) {
-      bot.sendLocation(ADMIN_CHAT_ID, coords.lat, coords.lon).catch(() => {});
+      ADMIN_IDS.forEach(id => bot.sendLocation(id, coords.lat, coords.lon).catch(() => {}));
     } else {
       // koordinatalarni ajratib bo'lmasa, havolani matn sifatida yuboramiz
-      bot.sendMessage(ADMIN_CHAT_ID, `🗺 Lokatsiya havolasi: ${data.address.location}`).catch(() => {});
+      ADMIN_IDS.forEach(id => bot.sendMessage(id, `🗺 Lokatsiya havolasi: ${data.address.location}`).catch(() => {}));
     }
   }
 
@@ -349,13 +362,13 @@ bot.on('message', async (msg) => {
   }
 
   // ---------- Faqat ADMIN uchun: /mahsulot — katalogga rasm orqali mahsulot qo'shish ----------
-  if (String(msg.chat.id) === String(ADMIN_CHAT_ID) && msg.photo && (msg.caption || '').trim().startsWith('/mahsulot')) {
+  if (isAdmin(msg.chat.id) && msg.photo && (msg.caption || '').trim().startsWith('/mahsulot')) {
     const caption = msg.caption.replace(/^\/mahsulot\s*/, '').trim();
     const parts = caption.split('|').map(p => p.trim());
     const [name, priceRaw, sizes, cat] = parts;
 
     if (!name || !priceRaw || !sizes || !cat) {
-      bot.sendMessage(ADMIN_CHAT_ID,
+      bot.sendMessage(msg.chat.id,
         "❗️ Format noto'g'ri. Rasm tagiga (caption) shu ko'rinishda yozing:\n\n" +
         "/mahsulot Nomi | Narx | O'lcham | Turkum\n\n" +
         "Masalan:\n/mahsulot Milano | 650000 | 40-44 | classic\n\n" +
@@ -366,7 +379,7 @@ bot.on('message', async (msg) => {
 
     const price = parseInt(priceRaw.replace(/\D/g, ''), 10);
     if (!price) {
-      bot.sendMessage(ADMIN_CHAT_ID, "❗️ Narx noto'g'ri kiritildi — faqat raqam yozing (masalan 650000).");
+      bot.sendMessage(msg.chat.id, "❗️ Narx noto'g'ri kiritildi — faqat raqam yozing (masalan 650000).");
       return;
     }
 
@@ -377,7 +390,7 @@ bot.on('message', async (msg) => {
       products.push(newProduct);
       saveProducts();
 
-      bot.sendMessage(ADMIN_CHAT_ID,
+      bot.sendMessage(msg.chat.id,
         `✅ <b>${name}</b> katalogga qo'shildi!\n` +
         `🆔 ID: ${newProduct.id}\n` +
         `💰 Narx: ${price.toLocaleString('ru-RU')} so'm\n` +
@@ -387,7 +400,7 @@ bot.on('message', async (msg) => {
       );
     } catch (e) {
       console.error('Mahsulot qo\'shishda xatolik:', e);
-      bot.sendMessage(ADMIN_CHAT_ID, "❌ Mahsulotni saqlashda xatolik yuz berdi. Qayta urinib ko'ring.");
+      bot.sendMessage(msg.chat.id, "❌ Mahsulotni saqlashda xatolik yuz berdi. Qayta urinib ko'ring.");
     }
     return;
   }
@@ -396,15 +409,15 @@ bot.on('message', async (msg) => {
   addUser(msg.chat.id);
 
   // ---------- Faqat ADMIN uchun: /royxat — barcha mahsulotlarni ko'rish ----------
-  if (String(msg.chat.id) === String(ADMIN_CHAT_ID) && (msg.text || '').trim().startsWith('/royxat')) {
+  if (isAdmin(msg.chat.id) && (msg.text || '').trim().startsWith('/royxat')) {
     if (products.length === 0) {
-      bot.sendMessage(ADMIN_CHAT_ID, "Hozircha katalogda mahsulot yo'q.");
+      bot.sendMessage(msg.chat.id, "Hozircha katalogda mahsulot yo'q.");
       return;
     }
     const list = products
       .map(p => `🆔 ${p.id} — <b>${p.name}</b>\n   ${p.cat} · ${p.sizes} · ${p.price.toLocaleString('ru-RU')} so'm`)
       .join('\n\n');
-    bot.sendMessage(ADMIN_CHAT_ID,
+    bot.sendMessage(msg.chat.id,
       `📋 <b>Katalogdagi mahsulotlar (${products.length} ta):</b>\n\n${list}\n\n` +
       `O'chirish uchun: /ochir <ID>\nMasalan: /ochir ${products[0].id}`,
       { parse_mode: 'HTML' }
@@ -413,18 +426,18 @@ bot.on('message', async (msg) => {
   }
 
   // ---------- Faqat ADMIN uchun: /ochir <ID> — mahsulotni katalogdan o'chirish ----------
-  if (String(msg.chat.id) === String(ADMIN_CHAT_ID) && (msg.text || '').trim().startsWith('/ochir')) {
+  if (isAdmin(msg.chat.id) && (msg.text || '').trim().startsWith('/ochir')) {
     const idText = (msg.text || '').replace(/^\/ochir\s*/, '').trim();
     const id = parseInt(idText, 10);
 
     if (!id) {
-      bot.sendMessage(ADMIN_CHAT_ID, "❗️ ID kiritilmadi. Masalan: /ochir 101\n\nRo'yxatni ko'rish uchun: /royxat");
+      bot.sendMessage(msg.chat.id, "❗️ ID kiritilmadi. Masalan: /ochir 101\n\nRo'yxatni ko'rish uchun: /royxat");
       return;
     }
 
     const index = products.findIndex(p => p.id === id);
     if (index === -1) {
-      bot.sendMessage(ADMIN_CHAT_ID, `❗️ ID ${id} bilan mahsulot topilmadi. Ro'yxat uchun: /royxat`);
+      bot.sendMessage(msg.chat.id, `❗️ ID ${id} bilan mahsulot topilmadi. Ro'yxat uchun: /royxat`);
       return;
     }
 
@@ -439,12 +452,12 @@ bot.on('message', async (msg) => {
       fs.unlink(filePath, () => {}); // xatolik bo'lsa ham e'tiborsiz qoldiramiz
     }
 
-    bot.sendMessage(ADMIN_CHAT_ID, `🗑 <b>${removed.name}</b> (ID: ${id}) katalogdan o'chirildi.`, { parse_mode: 'HTML' });
+    bot.sendMessage(msg.chat.id, `🗑 <b>${removed.name}</b> (ID: ${id}) katalogdan o'chirildi.`, { parse_mode: 'HTML' });
     return;
   }
 
   // ---------- Faqat ADMIN uchun: /post — hammaga post (e'lon) yuborish ----------
-  if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return;
+  if (!isAdmin(msg.chat.id)) return;
 
   const rawText = msg.text || msg.caption || '';
   if (!rawText.startsWith('/post')) return;
@@ -480,7 +493,7 @@ bot.on('message', async (msg) => {
   }
 
   if (!postByLang.uz.text && !msg.photo) {
-    bot.sendMessage(ADMIN_CHAT_ID,
+    bot.sendMessage(msg.chat.id,
       "✍️ Post matnini kiriting:\n/post Matningiz shu yerda\n\n" +
       "Tugma bilan:\n/post Matn | Tugma nomi | https://t.me/giovincouz\n\n" +
       "3 tilda (har kim o'zi tanlagan tilda ko'radi):\n" +
@@ -491,7 +504,7 @@ bot.on('message', async (msg) => {
   }
 
   const userIds = [...knownUsers];
-  bot.sendMessage(ADMIN_CHAT_ID, `📢 Post ${userIds.length} ta foydalanuvchiga yuborilmoqda...`);
+  bot.sendMessage(msg.chat.id, `📢 Post ${userIds.length} ta foydalanuvchiga yuborilmoqda...`);
 
   let sent = 0, failed = 0;
 
@@ -520,7 +533,7 @@ bot.on('message', async (msg) => {
     await new Promise(r => setTimeout(r, 40));
   }
 
-  bot.sendMessage(ADMIN_CHAT_ID, `✅ Post yuborildi.\nYetdi: ${sent}\nYetmadi (bloklangan/xatolik): ${failed}`);
+  bot.sendMessage(msg.chat.id, `✅ Post yuborildi.\nYetdi: ${sent}\nYetmadi (bloklangan/xatolik): ${failed}`);
 });
 
 // ---------- Web-server (Mini App'dan to'g'ridan-to'g'ri kelgan buyurtmalar uchun) ----------
