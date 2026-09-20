@@ -282,7 +282,7 @@ async function processOrder(data, customer, replyChatId) {
 
   const adminMessage =
     `🆕 <b>Yangi buyurtma — GIOVINCO</b>\n` +
-    `👤 Mijoz: ${customerNameLinked} (${customerUsername})\n` +
+    `👤 Mijoz: ${customerNameLinked}\n` +
     (replyChatId ? `🆔 Chat ID: <code>${replyChatId}</code>\n` : '') +
     sourceTag +
     itemsText +
