@@ -26,9 +26,12 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_CHAT_ID = process.env.ADMIN_CHAT_ID;
+// Bot server o'zining ommaviy (public) manzili — rasm URL'larini shakllantirish uchun kerak
+const PUBLIC_URL = process.env.PUBLIC_URL || 'https://passo-bot-production.up.railway.app';
 
 if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
   console.error('XATOLIK: BOT_TOKEN va ADMIN_CHAT_ID muhit o\'zgaruvchilari kiritilmagan!');
@@ -60,6 +63,35 @@ function addUser(chatId) {
     knownUsers.add(chatId);
     saveUsers();
   }
+}
+
+// ---------- Bot orqali qo'shilgan mahsulotlar (katalogga avtomatik qo'shish) ----------
+const PRODUCTS_FILE = './products.json';
+const IMAGES_DIR = path.join(__dirname, 'public', 'images');
+if (!fs.existsSync(IMAGES_DIR)) {
+  fs.mkdirSync(IMAGES_DIR, { recursive: true });
+}
+
+let products = [];
+try {
+  if (fs.existsSync(PRODUCTS_FILE)) {
+    products = JSON.parse(fs.readFileSync(PRODUCTS_FILE, 'utf8'));
+  }
+} catch (e) {
+  console.error('products.json o\'qishda xatolik:', e.message);
+}
+
+function saveProducts() {
+  try {
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2));
+  } catch (e) {
+    console.error('products.json yozishda xatolik:', e.message);
+  }
+}
+
+function nextProductId() {
+  const maxId = products.reduce((m, p) => Math.max(m, p.id || 0), 100); // 100dan boshlab — hardcoded mahsulotlar bilan to'qnashmasin
+  return maxId + 1;
 }
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
@@ -272,6 +304,18 @@ async function processOrder(data, customer, replyChatId) {
   }
 }
 
+// Telegram'ga yuklangan rasmni serverga (public/images) saqlab, ommaviy URL qaytaradi
+async function downloadTelegramPhoto(fileId, fileNameHint) {
+  const fileLink = await bot.getFileLink(fileId);
+  const res = await fetch(fileLink);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const ext = path.extname(fileLink.split('?')[0]) || '.jpg';
+  const safeHint = (fileNameHint || 'mahsulot').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const fileName = `${safeHint}-${Date.now()}${ext}`;
+  fs.writeFileSync(path.join(IMAGES_DIR, fileName), buffer);
+  return `${PUBLIC_URL}/images/${fileName}`;
+}
+
 // Eski usul: Reply Keyboard orqali ochilgan Mini App'lar uchun (agar bo'lsa)
 bot.on('message', async (msg) => {
   if (msg.web_app_data) {
@@ -282,6 +326,50 @@ bot.on('message', async (msg) => {
       }
     } catch (err) {
       console.error('Buyurtmani qayta ishlashda xatolik:', err);
+    }
+    return;
+  }
+
+  // ---------- Faqat ADMIN uchun: /mahsulot — katalogga rasm orqali mahsulot qo'shish ----------
+  if (String(msg.chat.id) === String(ADMIN_CHAT_ID) && msg.photo && (msg.caption || '').trim().startsWith('/mahsulot')) {
+    const caption = msg.caption.replace(/^\/mahsulot\s*/, '').trim();
+    const parts = caption.split('|').map(p => p.trim());
+    const [name, priceRaw, sizes, cat] = parts;
+
+    if (!name || !priceRaw || !sizes || !cat) {
+      bot.sendMessage(ADMIN_CHAT_ID,
+        "❗️ Format noto'g'ri. Rasm tagiga (caption) shu ko'rinishda yozing:\n\n" +
+        "/mahsulot Nomi | Narx | O'lcham | Turkum\n\n" +
+        "Masalan:\n/mahsulot Milano | 650000 | 40-44 | classic\n\n" +
+        "Turkumlar: sneakers, boots, sport, slippers, classic"
+      );
+      return;
+    }
+
+    const price = parseInt(priceRaw.replace(/\D/g, ''), 10);
+    if (!price) {
+      bot.sendMessage(ADMIN_CHAT_ID, "❗️ Narx noto'g'ri kiritildi — faqat raqam yozing (masalan 650000).");
+      return;
+    }
+
+    try {
+      const fileId = msg.photo[msg.photo.length - 1].file_id;
+      const imageUrl = await downloadTelegramPhoto(fileId, name);
+      const newProduct = { id: nextProductId(), name, cat, sizes, price, image: imageUrl };
+      products.push(newProduct);
+      saveProducts();
+
+      bot.sendMessage(ADMIN_CHAT_ID,
+        `✅ <b>${name}</b> katalogga qo'shildi!\n` +
+        `🆔 ID: ${newProduct.id}\n` +
+        `💰 Narx: ${price.toLocaleString('ru-RU')} so'm\n` +
+        `📏 O'lcham: ${sizes}\n` +
+        `📂 Turkum: ${cat}`,
+        { parse_mode: 'HTML' }
+      );
+    } catch (e) {
+      console.error('Mahsulot qo\'shishda xatolik:', e);
+      bot.sendMessage(ADMIN_CHAT_ID, "❌ Mahsulotni saqlashda xatolik yuz berdi. Qayta urinib ko'ring.");
     }
     return;
   }
@@ -384,6 +472,14 @@ app.use((req, res, next) => {
 
 app.get('/', (req, res) => {
   res.send('GIOVINCO bot server ishlayapti.');
+});
+
+// Bot orqali yuklangan rasmlar shu manzil ostida ko'rinadi: /images/<fayl>.jpg
+app.use('/images', express.static(IMAGES_DIR));
+
+// Mini App shu yerdan bot orqali qo'shilgan mahsulotlarni oladi
+app.get('/api/products', (req, res) => {
+  res.json({ ok: true, products });
 });
 
 app.post('/api/order', (req, res) => {

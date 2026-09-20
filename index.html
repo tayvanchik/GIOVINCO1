@@ -203,7 +203,7 @@
     display:flex; flex-direction:column; align-items:center;
     text-align:center; padding:70px 40px 30px;
   }
-  .empty .duck{ margin-bottom:14px; display:flex; align-items:center; justify-content:center; }
+  .empty .duck{ font-size:56px; margin-bottom:14px; }
   .empty h3{ font-family:'Archivo Black',sans-serif; font-size:17px; margin:0 0 8px; letter-spacing:0.01em;}
   .empty p{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 22px; font-weight:700; }
   .cta{
@@ -852,6 +852,7 @@ function shoeSVG(color){
   </svg>`;
 }
 
+// Haqiqiy surat bo'lsa shuni, bo'lmasa chizilgan belgini ko'rsatadi
 function productVisual(p){
   if(p.image) return `<img src="${p.image}" alt="${p.name}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">`;
   return shoeSVG(p.color);
@@ -859,7 +860,7 @@ function productVisual(p){
 
 const PALETTE = ['#FF4E1F','#6E7454','#171512','#B7501C','#3D3A32'];
 
-const PRODUCTS = [
+let PRODUCTS = [
   {id:1, name:'Classic', cat:'sneakers', sizes:'40–45', price:389000, color:PALETTE[0]},
   {id:2, name:'Street', cat:'sneakers', sizes:'41–46', price:429000, color:PALETTE[1]},
   {id:3, name:'Trail GTX', cat:'boots', sizes:'40–44', price:565000, color:PALETTE[2]},
@@ -875,8 +876,22 @@ const PRODUCTS = [
 const CATS = ['all','sneakers','boots','sport','slippers','classic'];
 
 let favorites = new Set();
-let cart = {}; 
+let cart = {}; // id -> {qty, size, comment}
 let activeCat = 'all';
+
+async function loadRemoteProducts(){
+  try{
+    const res = await fetch(API_URL + '/api/products');
+    const data = await res.json();
+    if(data && Array.isArray(data.products) && data.products.length){
+      PRODUCTS = PRODUCTS.concat(data.products);
+      renderChips();
+      renderGrid();
+    }
+  }catch(e){
+    console.error('Mahsulotlarni serverdan yuklashda xatolik:', e);
+  }
+}
 
 function fmt(n){ return n.toLocaleString('ru-RU').replace(/,/g,' ') + ' so\'m'; }
 
@@ -967,11 +982,7 @@ function renderFav(){
   const items = PRODUCTS.filter(p => favorites.has(p.id));
   if(items.length===0){
     el.innerHTML = `<div class="empty">
-      <div class="duck">
-        <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
-          <path d="M12 20s-7.5-4.6-10-9.2C.5 7 2.3 3.5 6 3c2.2-.3 4 .9 6 3.3C14 3.9 15.8 2.7 18 3c3.7.5 5.5 4 4 7.8C19.5 15.4 12 20 12 20z" stroke="#C8A86B" stroke-width="1.8" stroke-linejoin="round"/>
-        </svg>
-      </div>
+      <div class="duck"><svg width="56" height="56" viewBox="0 0 24 24" fill="none"><path d="M12 20s-7.5-4.6-10-9.2C.5 7 2.3 3.5 6 3c2.2-.3 4 .9 6 3.3C14 3.9 15.8 2.7 18 3c3.7.5 5.5 4 4 7.8C19.5 15.4 12 20 12 20z" stroke="#C8A86B" stroke-width="1.6" stroke-linejoin="round"/></svg></div>
       <h3>${t('fav_empty_title')}</h3>
       <p>${t('fav_empty_desc')}</p>
       <button class="cta" onclick="go('catalog')">${t('fav_empty_btn')}</button>
@@ -986,12 +997,7 @@ function renderCart(){
   const ids = Object.keys(cart);
   if(ids.length===0){
     el.innerHTML = `<div class="empty">
-      <div class="duck">
-        <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
-          <path d="M6 8h12l-1 12H7L6 8z" stroke="#C8A86B" stroke-width="1.8" stroke-linejoin="round"/>
-          <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="#C8A86B" stroke-width="1.8"/>
-        </svg>
-      </div>
+      <div class="duck"><svg width="56" height="56" viewBox="0 0 24 24" fill="none"><path d="M6 8h12l-1 12H7L6 8z" stroke="#C8A86B" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="#C8A86B" stroke-width="1.6"/></svg></div>
       <h3>${t('cart_empty_title')}</h3>
       <p>${t('cart_empty_desc')}</p>
       <button class="cta" onclick="go('catalog')">${t('cart_empty_btn')}</button>
@@ -1229,7 +1235,7 @@ function openOrderHistory(){
     body.innerHTML = orders.map(o => `
       <div class="order-card">
         <div class="date">${o.date}</div>
-        <div class="items">${o.items.map(it => `${it.name} · ${t('order_card_size')}${it.size} · ${it.qty}${t('order_card_qty')}`).join('<br>')}</div>
+        <div class="items">${o.items.map(it => `${it.name} · ${t('order_card_size')} ${it.size} · ${it.qty} ${t('order_card_qty')}`).join('<br>')}</div>
         <div class="total mono">${t('order_card_total')}: ${fmt(o.total)}</div>
       </div>
     `).join('');
@@ -1316,6 +1322,7 @@ function init(){
   updateLangButtons();
   renderChips();
   renderGrid();
+  loadRemoteProducts();
   renderFav();
   renderCart();
   updateProfileStats();
