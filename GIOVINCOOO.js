@@ -39,7 +39,13 @@ if (!BOT_TOKEN || !ADMIN_CHAT_ID) {
 }
 
 // ---------- Botdan foydalangan userlar ro'yxati (post yuborish uchun) ----------
-const USERS_FILE = './users.json';
+// Doimiy saqlash uchun Railway Volume ulangan papka (Volume Mount Path: /app/data)
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || '/app/data';
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
 let knownUsers = new Set();
 try {
   if (fs.existsSync(USERS_FILE)) {
@@ -66,8 +72,8 @@ function addUser(chatId) {
 }
 
 // ---------- Bot orqali qo'shilgan mahsulotlar (katalogga avtomatik qo'shish) ----------
-const PRODUCTS_FILE = './products.json';
-const IMAGES_DIR = path.join(__dirname, 'public', 'images');
+const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const IMAGES_DIR = path.join(DATA_DIR, 'images');
 if (!fs.existsSync(IMAGES_DIR)) {
   fs.mkdirSync(IMAGES_DIR, { recursive: true });
 }
