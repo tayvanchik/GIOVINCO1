@@ -95,8 +95,20 @@ function saveProducts() {
   }
 }
 
+// Milano va Torino avval index.html'da qattiq yozilgan edi — endi ularni ham
+// bot orqali boshqarish (ko'rish/o'chirish) mumkin bo'lishi uchun, agar hali
+// bazada bo'lmasa, bir martalik "urug'" sifatida qo'shib qo'yamiz.
+const SEED_NAMES = products.map(p => p.name);
+if (!SEED_NAMES.includes('Milano')) {
+  products.push({ id: 9, name: 'Milano', cat: 'classic', sizes: '40–44', price: 650000, image: 'https://raw.githubusercontent.com/tayvanchik/passo-bot/main/images/passo-milano.png' });
+}
+if (!SEED_NAMES.includes('Torino')) {
+  products.push({ id: 10, name: 'Torino', cat: 'sneakers', sizes: '40–46', price: 600000, image: 'https://raw.githubusercontent.com/tayvanchik/passo-bot/main/images/passo-torino.png' });
+}
+saveProducts();
+
 function nextProductId() {
-  const maxId = products.reduce((m, p) => Math.max(m, p.id || 0), 100); // 100dan boshlab — hardcoded mahsulotlar bilan to'qnashmasin
+  const maxId = products.reduce((m, p) => Math.max(m, p.id || 0), 100); // 100dan boshlab
   return maxId + 1;
 }
 
@@ -382,6 +394,54 @@ bot.on('message', async (msg) => {
 
   // Oddiy (Mini App bo'lmagan) xabar yuborgan har bir userni ro'yxatga qo'shamiz
   addUser(msg.chat.id);
+
+  // ---------- Faqat ADMIN uchun: /royxat — barcha mahsulotlarni ko'rish ----------
+  if (String(msg.chat.id) === String(ADMIN_CHAT_ID) && (msg.text || '').trim().startsWith('/royxat')) {
+    if (products.length === 0) {
+      bot.sendMessage(ADMIN_CHAT_ID, "Hozircha katalogda mahsulot yo'q.");
+      return;
+    }
+    const list = products
+      .map(p => `🆔 ${p.id} — <b>${p.name}</b>\n   ${p.cat} · ${p.sizes} · ${p.price.toLocaleString('ru-RU')} so'm`)
+      .join('\n\n');
+    bot.sendMessage(ADMIN_CHAT_ID,
+      `📋 <b>Katalogdagi mahsulotlar (${products.length} ta):</b>\n\n${list}\n\n` +
+      `O'chirish uchun: /ochir <ID>\nMasalan: /ochir ${products[0].id}`,
+      { parse_mode: 'HTML' }
+    );
+    return;
+  }
+
+  // ---------- Faqat ADMIN uchun: /ochir <ID> — mahsulotni katalogdan o'chirish ----------
+  if (String(msg.chat.id) === String(ADMIN_CHAT_ID) && (msg.text || '').trim().startsWith('/ochir')) {
+    const idText = (msg.text || '').replace(/^\/ochir\s*/, '').trim();
+    const id = parseInt(idText, 10);
+
+    if (!id) {
+      bot.sendMessage(ADMIN_CHAT_ID, "❗️ ID kiritilmadi. Masalan: /ochir 101\n\nRo'yxatni ko'rish uchun: /royxat");
+      return;
+    }
+
+    const index = products.findIndex(p => p.id === id);
+    if (index === -1) {
+      bot.sendMessage(ADMIN_CHAT_ID, `❗️ ID ${id} bilan mahsulot topilmadi. Ro'yxat uchun: /royxat`);
+      return;
+    }
+
+    const removed = products[index];
+    products.splice(index, 1);
+    saveProducts();
+
+    // Agar rasm shu serverda saqlangan bo'lsa (bot orqali yuklangan), uni ham o'chiramiz
+    if (removed.image && removed.image.startsWith(PUBLIC_URL + '/images/')) {
+      const fileName = removed.image.split('/images/')[1];
+      const filePath = path.join(IMAGES_DIR, fileName);
+      fs.unlink(filePath, () => {}); // xatolik bo'lsa ham e'tiborsiz qoldiramiz
+    }
+
+    bot.sendMessage(ADMIN_CHAT_ID, `🗑 <b>${removed.name}</b> (ID: ${id}) katalogdan o'chirildi.`, { parse_mode: 'HTML' });
+    return;
+  }
 
   // ---------- Faqat ADMIN uchun: /post — hammaga post (e'lon) yuborish ----------
   if (String(msg.chat.id) !== String(ADMIN_CHAT_ID)) return;
